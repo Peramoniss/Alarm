@@ -1,4 +1,5 @@
 import 'package:despertador/Models/alarm.dart';
+import 'package:despertador/Models/hour.dart';
 import 'package:despertador/Services/database.dart';
 import 'package:flutter/material.dart';
 
@@ -6,37 +7,41 @@ import 'package:flutter/material.dart';
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-class AddAlarmView extends StatefulWidget {
-  const AddAlarmView({super.key});
+class AddHourView extends StatefulWidget {
+  const AddHourView({super.key});
 
   @override
-  State<AddAlarmView> createState() => _AddAlarmViewState();
+  State<AddHourView> createState() => _AddHourViewState();
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-class _AddAlarmViewState extends State<AddAlarmView> {
+class _AddHourViewState extends State<AddHourView> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  bool _marcado = false;
+  final TextEditingController _timeController = TextEditingController();
+  late Alarm alarm;
+  late bool isEdit;
+  var parametros;
+  bool _initialized = false;
+  Hour? editingHour;
+  
 
-  Future<void> inserir() async {
-    Map<String, dynamic> row = {
-      DatabaseHelper.columnName: _nameController.text,
-      DatabaseHelper.columnActive: _marcado == true ? 1 : 0
-    };
+  Future<void> _selectTime(BuildContext context) async {
+    TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
 
-    final id = await DatabaseHelper.insertAlarm(row);
+    if (selectedTime != null) {
+      setState(() {
+        _timeController.text = selectedTime.format(context);
+      });
+    }
   }
 
-
-  bool _initialized = false;
-  Alarm? editingAlarm;
-  late bool isEdit;
-  var parametros; 
-
+  
   @override
   void didChangeDependencies(){
     super.didChangeDependencies();
@@ -44,16 +49,17 @@ class _AddAlarmViewState extends State<AddAlarmView> {
     if (_initialized == false){
       parametros = ModalRoute.of(context)!.settings.arguments;
       if (parametros is Map<String, dynamic>) {
-        editingAlarm = parametros['alarm'] as Alarm?;
+        alarm = parametros['alarm'] as Alarm;
+        editingHour = parametros['hour'] as Hour?;
         isEdit = parametros['editMode'] as bool;
-        if (editingAlarm != null && isEdit == true) {
-          _nameController.text = editingAlarm!.name;
-          _marcado = editingAlarm!.active == 1 ? true : false;
+        if (editingHour != null && isEdit == true) {
+          _timeController.text = editingHour!.time;
         }
       }
       _initialized = true;
     } 
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +70,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
       /////////////////////////////////////////////////////////////////////////////////////
       
       appBar: AppBar(
-        title: Text('Adicionar alarme')
+        title: Text(isEdit ? 'Editar horário' : 'Adicionar horário')
       ),
 
 
@@ -81,78 +87,68 @@ class _AddAlarmViewState extends State<AddAlarmView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                
+
                 Center(
                   child: Text(
-                    "Nome",
+                    "Horário",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
 
                 SizedBox(height: 4),
-
+                
                 TextFormField(
-                  controller: _nameController,
+                  controller: _timeController,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.access_time),
+                      onPressed: () => _selectTime(context),
+                    ),
                   ),
+                  readOnly: true,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Selecione um horário' : null,
                 ),
 
                 SizedBox(height: 16),
 
                 ///////////////////////////////////////////////////////////////////////////
                 
-                Center(
-                  child: Text(
-                    "Ativar alarme",
-                    style: TextStyle(fontSize: 18, color: Colors.black),
-                  ),
-                ),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Switch(
-                      value: _marcado,
-                      onChanged: (bool value) {
+                /*Text('Repeat on:'),
+                Column(
+                  children: List.generate(7, (index) {
+                    return CheckboxListTile(
+                      title: Text(_dayNames[index]),
+                      value: _daysController[index],
+                      onChanged: (bool? value) {
                         setState(() {
-                          _marcado = value ?? false;
+                          _daysController[index] = value ?? false;
                         });
                       },
-                      activeColor: const Color.fromARGB(255, 4,102,200),
-                      inactiveThumbColor: const Color.fromARGB(255, 134, 134, 134),
-                      inactiveTrackColor: const Color.fromARGB(255, 218, 218, 218),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 16),
+                    );
+                  }),
+                ),*/
 
                 ///////////////////////////////////////////////////////////////////////////
-                
+
+                SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-
+                      // Hour temp = Hour(time: _timeController.text, alarmId: parametros.id);
                       if (isEdit == true) {
-                        editingAlarm!.name = _nameController.text;
-                        editingAlarm!.active = _marcado == true ? 1 : 0;
-                        DatabaseHelper.editAlarm(editingAlarm!);
-
+                        editingHour!.time = _timeController.text;
+                        DatabaseHelper.editHour(editingHour!);
                       } else {
-                        Alarm temp = Alarm(name: _nameController.text, active: _marcado == true ? 1 : 0);
-
                         Map<String, dynamic> row = {
-                          DatabaseHelper.columnName: _nameController.text,
-                          DatabaseHelper.columnActive: _marcado == true ? 1 : 0
+                          DatabaseHelper.columnTime: _timeController.text,
+                          DatabaseHelper.columnAlarmId: alarm.id,
+                          DatabaseHelper.columnAnswered: 0
                         };
 
-                        final id = await DatabaseHelper.insertAlarm(row);
+                        final id = await DatabaseHelper.insertHour(row);
                       }
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Alarme adicionado!')),
-                      );
 
                       Navigator.pop(context, true); // 'true' informs that the state has changed and must rebuild the screen.
                     }
