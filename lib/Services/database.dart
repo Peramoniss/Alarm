@@ -1,4 +1,5 @@
 import 'package:despertador/Models/alarm.dart';
+import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -60,14 +61,12 @@ class DatabaseHelper {
       CREATE TABLE $dayTable (
         $columnId INTEGER PRIMARY KEY AUTOINCREMENT,
         $columnWeekDay TEXT NOT NULL CHECK($columnWeekDay IN ('segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo', 'n_dias')),
-        $columnNum INTEGER,
-        $columnDaysPassed INTEGER,
         $columnToday INTEGER NOT NULL,
         $columnAlarmId INTEGER NOT NULL,
         FOREIGN KEY ($columnAlarmId) REFERENCES $alarmTable($columnId) ON DELETE CASCADE
       )
     ''');
-
+//  $columnNum INTEGER, $columnDaysPassed INTEGER,
   }
 
   /*//atualiza programa. Por enquanto não é necessário
@@ -115,6 +114,11 @@ class DatabaseHelper {
     return await _bancoDeDados.delete(hourTable, where: '$columnId = ?', whereArgs: [id]);
   }
 
+  static Future<int> deleteDay(int id) async { 
+    await iniciarBD();
+    return await _bancoDeDados.delete(dayTable, where: '$columnId = ?', whereArgs: [id]);
+  }
+
   static Future<List<Alarm>> getAlarms() async {
     await iniciarBD();
 
@@ -144,6 +148,21 @@ class DatabaseHelper {
             columnAnswered: pAnswered as int,
           } in hours)
         Hour(id: pId, time: pTime, answered: pAnswered, alarmId: id),
+    ];
+  }
+
+  static Future<List<Day>> getDays(int id) async {
+    await iniciarBD();
+
+    final List<Map<String, Object?>> days =
+        await _bancoDeDados.query(dayTable, where: '$columnAlarmId = ?', whereArgs: [id]);
+
+    return [
+      for (final {
+            columnId: pId as int,
+            columnWeekDay: pWeekDay as String,
+          } in days)
+        Day(id: pId, week_day: pWeekDay, alarmId: id),
     ];
   }
 
