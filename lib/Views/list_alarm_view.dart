@@ -1,8 +1,6 @@
 import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/global.dart';
 import 'package:despertador/Services/database.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqlite_api.dart';
 import '../Models/routes.dart';
 
 
@@ -21,15 +19,14 @@ class AlarmView extends StatefulWidget{
 
 
 class _AlarmViewState extends State<AlarmView> {
-  List<Alarm> tasks = []; 
+  List<Alarm> alarms = []; 
   
   void loadAlarms() async {
-    tasks = await DatabaseHelper.getAlarms();
-    setState(() {}); // if you want to rebuild the UI
+    alarms = await DatabaseHelper.getAlarms();
+    setState(() {});
   }
 
-  @override
-
+  
   @override
   Widget build(BuildContext context) {
     loadAlarms();
@@ -69,29 +66,28 @@ class _AlarmViewState extends State<AlarmView> {
               
               Expanded(
                 child: ListView.separated(
-                  //padding: const EdgeInsets.all(8),
-                  itemCount: tasks.length,
+                  itemCount: alarms.length,
                   itemBuilder: (BuildContext context, int index) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(5),
                       child: Container(
-                        color: tasks[index].active == 1 ? Colors.blue : const Color.fromARGB(255, 116, 155, 187),  
+                        color: alarms[index].active == 1 ? const Color.fromARGB(255, 4, 102, 200) : const Color.fromARGB(255, 74, 103, 126),  
                         child: ListTile(
 
                           title: Text(
-                            '${tasks[index].name} - id: ${tasks[index].id}',
+                            '${alarms[index].name} - id: ${alarms[index].id}',
                             style: TextStyle(
                               color: Colors.white,
                             ),
                           ),
-                          
+
                           trailing: Icon(
-                            tasks[index].active == 1 ? Icons.check_circle_outlined : Icons.cancel_outlined,
+                            alarms[index].active == 1 ? Icons.check_circle_outlined : Icons.cancel_outlined,
                             color: Colors.white,
                           ),
 
                           onTap: () {
-                            Navigator.pushNamed(context, Routes.getHours, arguments: tasks[index]).then((value) {
+                            Navigator.pushNamed(context, Routes.detailAlarm, arguments: alarms[index]).then((value) {
                               if (value == true) {
                                 setState(() {
                                 });
@@ -100,7 +96,7 @@ class _AlarmViewState extends State<AlarmView> {
                           },
 
                           onLongPress: () {
-                            Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarm': tasks[index], 'editMode': true}).then((value) {
+                            Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarm': alarms[index], 'editMode': true}).then((value) {
                               if (value == true) {
                                 setState(() {
                                 });
