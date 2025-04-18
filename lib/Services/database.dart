@@ -135,6 +135,34 @@ class DatabaseHelper {
     ];
   }
 
+ static Future<Alarm> getAlarm(int id) async {
+    await iniciarBD();
+
+    final result = await _bancoDeDados.query(
+      alarmTable,
+      where: '$columnId = ?',
+      whereArgs: [id]
+    );
+
+
+    final List<Map<String, Object?>> alarms =
+        await _bancoDeDados.query(alarmTable, where: '$columnId = ?', whereArgs: [id]);
+
+
+    Alarm a = [
+      for (final {
+            columnId: pId as int,
+            columnName: pName as String,
+            columnActive: pActive as int,
+          } in alarms)
+        Alarm(id: pId, name: pName, active: pActive),
+    ].first;
+
+    print(a);
+    return a;
+  }
+
+
   static Future<List<Hour>> getHours(int id) async {
     await iniciarBD();
 
