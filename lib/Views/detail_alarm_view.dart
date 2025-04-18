@@ -23,12 +23,30 @@ class DetailAlarmView extends StatefulWidget{
 class _DetailAlarmViewState extends State<DetailAlarmView> {
   List<Hour> hours = []; 
   List<Day> days = []; 
+  Alarm? alarm;
 
   void loadHours(int id) async {
+    // alarm = await DatabaseHelper.getAlarm(id);
     hours = await DatabaseHelper.getHours(id);
     days = await DatabaseHelper.getDays(id);
     if (mounted) setState(() {});
   }
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Exemplo: Pegando o id da rota, se você passou via argumentos
+    Future.microtask(() {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is Map<String, dynamic>) {
+        int id = args['id']; // Ou 'alarmId'
+        loadHours(id);
+      }
+    });
+  }
+
 
   void _confirmAlarmDeletion(BuildContext context, int id) async {
     final confirm = await showDialog<bool>(
@@ -62,6 +80,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     }
   }
 
+
   void _confirmarExclusaoHorario(BuildContext context, int id) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -83,7 +102,6 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
 
     if (confirm == true) {
       await DatabaseHelper.deleteHour(id);
-      //loadHours(alarmId);
 
       if (!context.mounted) return;
 
@@ -92,6 +110,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
       );
     }
   }
+
 
   void _confirmarExclusaoDia(BuildContext context, int id) async {
     final confirm = await showDialog<bool>(
@@ -124,16 +143,39 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     var parameters;
+
     if (ModalRoute.of(context)!.settings.arguments != null) {
       if (ModalRoute.of(context)!.settings.arguments is Alarm) {
         parameters = ModalRoute.of(context)!.settings.arguments as Alarm;
       }
     }
-
     loadHours(parameters.id);
+
+    String? closest;
+    //String closest = "00:00";
+    if (alarm != null) {
+      String closest = alarm!.getClosestHour(hours);
+      // faça algo com closest
+    } else {
+      print('Alarme ainda não carregado');
+    }
+    // if (closest.isEmpty) {
+    //   closest = "00:00";
+    // }
+
+    if (alarm != null) {
+      String diaMaisProximo = alarm!.getProximoDia(days);
+      // faça algo com closest
+    } else {
+      print('Alarme ainda não carregado');
+    }
+
+
 
     return Scaffold(
       appBar: AppBar(
@@ -152,7 +194,9 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
+
                 SizedBox(height: 4),
+
                 Center(
                   child: Text(
                     parameters.name,
@@ -168,13 +212,16 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                   ),
                 ),
                 SizedBox(height: 4),
+
                 Center(
                   child: Text(
-                    'Segunda-feira, 10:38',
+                    //'${diaMaisProximo}, ${closest}',,
+                    "Segunda-feira, 09:00",
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 24),
                   ),
                 ),
+
                 SizedBox(height: 20),
                 Center(
                   child: Text(

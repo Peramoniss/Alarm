@@ -259,7 +259,6 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                                       onPressed: () async {
                                         await DatabaseHelper.deleteDay(day.id!);
                                         setState(() {
-                                          
                                           days.remove(day);
                                         });
                                       },
@@ -270,62 +269,59 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                             ),
                       SizedBox(height: 12),
                       ElevatedButton(
-  onPressed: () {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 300, // Adjust height as needed
-          child: ListView.builder(
-            itemCount: allDays.length,
-            itemBuilder: (context, index) {
-              final day = allDays[index];
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(5),
-                child: Container(
-                  color: const Color.fromARGB(255, 4, 102, 200),
-                  child: ListTile(
-                    title: Text(
-                      day,
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(
-                        days.contains(day)
-                            ? Icons.check_circle
-                            : Icons.add_circle,
-                        color: Colors.white,
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (context) {
+                              return SizedBox(
+                                height: 300, // Adjust height as needed
+                                child: ListView.builder(
+                                  itemCount: allDays.length,
+                                  itemBuilder: (context, index) {
+                                    final day = allDays[index];
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(5),
+                                      child: Container(
+                                        color: const Color.fromARGB(255, 4, 102, 200),
+                                        child: ListTile(
+                                          title: Text(
+                                            day,
+                                            style: TextStyle(fontSize: 16, color: Colors.white),
+                                          ),
+                                          trailing: IconButton(
+                                            icon: Icon(
+                                              days.contains(day)
+                                                  ? Icons.check_circle
+                                                  : Icons.add_circle,
+                                              color: Colors.white,
+                                            ),
+                                            onPressed: () async {
+                                              if (!days.any((d) => d.week_day == day)) {
+                                                Map<String, dynamic> row = {
+                                                    DatabaseHelper.columnWeekDay: day,
+                                                    DatabaseHelper.columnToday: 0,
+                                                    DatabaseHelper.columnAlarmId: alarm.id,
+                                                  };
+                                                  var id = await DatabaseHelper.insertDay(row);
+                                              }
+
+                                              setState(() {});
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: Text(
+                          'Adicionar',
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                        ),
                       ),
-                      onPressed: () async {
-                         Map<String, dynamic> row = {
-                            DatabaseHelper.columnWeekDay: day,
-                            DatabaseHelper.columnToday: 0,
-                            DatabaseHelper.columnAlarmId: alarm.id,
-                          };
-                          var id = await DatabaseHelper.insertDay(row);
-                        setState(() {
-                          // Add the day to the days list if it's not already selected
-                          if (!days.contains(day)) {
-                            selectedDays.add(day);
-    
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  },
-  child: Text(
-    'Adicionar',
-    style: TextStyle(fontSize: 16, color: Colors.black),
-  ),
-),
 
                     ],
                   ),

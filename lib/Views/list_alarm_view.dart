@@ -1,4 +1,6 @@
 import 'package:despertador/Models/alarm.dart';
+import 'package:despertador/Models/day.dart';
+import 'package:despertador/Models/hour.dart';
 import 'package:despertador/Services/database.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
@@ -26,10 +28,70 @@ class _AlarmViewState extends State<AlarmView> {
     setState(() {});
   }
 
+  int _getDiaIndex(String dia) {
+    const dias = {
+      'segunda': 1,
+      'terca': 2,
+      'quarta': 3,
+      'quinta': 4,
+      'sexta': 5,
+      'sabado': 6,
+      'domingo': 7
+    };
+    return dias[dia.toLowerCase()] ?? 1; // default: segunda
+  }
+
+  TimeOfDay _parseTimeOfDay(String time) {
+    final parts = time.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  Future<Alarm?> getAlarmeMaisProximo(List<Alarm> alarms) async {
+    // if (alarms.isEmpty) return null;
+
+    final now = DateTime.now();
+    int? menorDiferenca;
+    Alarm? alarmeMaisProximo;
+
+    for (var alarm in alarms) {
+      // Pega os dias e horários do alarme
+      List<Day> dias = await DatabaseHelper.getDays(alarm.id!); // Supondo que você tenha isso dentro do objeto
+      List<Hour> horarios = await DatabaseHelper.getHours(alarm.id!);
+
+      // Usa o método que você criou para pegar o dia mais próximo
+      String proximoDiaStr = alarm.getProximoDia(dias);
+      int proximoDiaIndex = _getDiaIndex(proximoDiaStr);
+
+      // Calcula a diferença de dias a partir de hoje
+      int diffDias = (proximoDiaIndex - now.weekday + 7) % 7;
+
+      // Pega o horário mais próximo também
+      String horaStr = alarm.getClosestHour(horarios);
+      TimeOfDay hora = _parseTimeOfDay(horaStr);
+
+      // Cria a data e hora combinadas do próximo disparo
+      DateTime dataDisparo = DateTime(now.year, now.month, now.day, hora.hour, hora.minute)
+          .add(Duration(days: diffDias));
+
+      int diferencaEmSegundos = dataDisparo.difference(now).inSeconds;
+
+      if (menorDiferenca == null || diferencaEmSegundos < menorDiferenca) {
+        menorDiferenca = diferencaEmSegundos;
+        alarmeMaisProximo = alarm;
+      }
+    }
+
+    return alarmeMaisProximo;
+  }
+
+
   
   @override
   Widget build(BuildContext context) {
     loadAlarms();
+
+
+
     return Scaffold(
 
       /////////////////////////////////////////////////////////////////////////////////////
