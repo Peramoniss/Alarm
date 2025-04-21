@@ -188,7 +188,7 @@ class _AlarmViewState extends State<AlarmView> {
                       return ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          color: listOfAlarms[index].active == 1 ? const Color.fromARGB(255, 43, 131, 219) : const Color.fromARGB(255, 97, 128, 151),  
+                          color: listOfAlarms[index].active == 1 ? const Color.fromARGB(255, 0, 75, 150) : const Color.fromARGB(255, 72, 112, 143),  
                           child: ListTile(
 
                             title: Text(
