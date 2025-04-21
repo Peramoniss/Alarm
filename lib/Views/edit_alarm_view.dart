@@ -3,7 +3,6 @@ import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
 import 'package:despertador/Services/database.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
 import '../Models/routes.dart';
 
 
@@ -263,7 +262,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
 
                         child: Text(
                           'Adicionar',
-                          style: TextStyle(fontSize: 16, color: Colors.black),
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
                     ],
@@ -396,7 +395,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
 
                         child: Text(
                           'Adicionar',
-                          style: TextStyle(fontSize: 16, color: Colors.black),
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
                     ],
@@ -423,7 +422,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
 
                       child: Text(
                         'Salvar',
-                        style: TextStyle(fontSize: 18, color: Colors.black),
+                        style: TextStyle(fontSize: 18),
                       ),
                     ),
                   ],

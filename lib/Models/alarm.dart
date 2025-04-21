@@ -77,8 +77,4 @@ class Alarm {
       'active': active,
     };
   }
-
-  /*String toJson() => json.encode(toMap());
-
-  factory Alarm.fromJson(String source) => Alarm.fromMap(json.decode(source) as Map<String, dynamic>);*/
 }

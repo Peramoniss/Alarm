@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
       navigatorKey: Routes.nav,
 
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color.fromARGB(255, 238, 238, 238),
+        scaffoldBackgroundColor: const Color.fromARGB(255, 231, 231, 231),
 
         appBarTheme: AppBarTheme(
           backgroundColor: const Color.fromARGB(255, 255, 255, 255),
@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
         ),
 
         floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: Colors.blue,
+          backgroundColor: Color.fromARGB(255, 4, 102, 200),
           foregroundColor: Colors.white,
           shape: StadiumBorder(),
           elevation: 2,
@@ -45,6 +45,8 @@ class MyApp extends StatelessWidget {
 
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            backgroundColor: Color.fromARGB(255, 4, 102, 200),
+            foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(vertical: 16.0), 
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(7.0),
