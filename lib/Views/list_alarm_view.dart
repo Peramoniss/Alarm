@@ -21,78 +21,93 @@ class AlarmView extends StatefulWidget{
 
 
 class _AlarmViewState extends State<AlarmView> {
-  List<Alarm> listOfAlarms = []; 
-  
+  List<Alarm> listOfAlarms = [];
+  List<int> listOfNumberOfHoursByAlarm = [];
+  List<int> listOfNumberOfDaysByAlarm = [];
 
-  void loadAlarms() async {
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<void> loadAlarms() async {
     listOfAlarms = await DatabaseHelper.getAlarms();
-    setState(() {});
-  }
-  
-
-  int _getDiaIndex(String dia) {
-    const dias = {
-      'segunda': 1,
-      'terca': 2,
-      'quarta': 3,
-      'quinta': 4,
-      'sexta': 5,
-      'sabado': 6,
-      'domingo': 7
-    };
-    return dias[dia.toLowerCase()] ?? 1; // Default value: 'segunda'.
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
-  TimeOfDay _parseTimeOfDay(String time) {
-    final parts = time.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-  }
-
-
-  Future<Alarm?> getAlarmeMaisProximo(List<Alarm> listOfAlarms) async {
-    // if (listOfAlarms.isEmpty) return null;
-
-    final now = DateTime.now();
-    int? menorDiferenca;
-    Alarm? alarmeMaisProximo;
+  Future<void> loadNumberOfHoursByAlarm() async {
+    listOfNumberOfHoursByAlarm.clear();
 
     for (var alarm in listOfAlarms) {
-      // Pega os dias e horários do alarme
-      List<Day> dias = await DatabaseHelper.getDays(alarm.id!); // Supondo que você tenha isso dentro do objeto
-      List<Hour> horarios = await DatabaseHelper.getHours(alarm.id!);
-
-      // Usa o método que você criou para pegar o dia mais próximo
-      String proximoDiaStr = alarm.getProximoDia(dias);
-      int proximoDiaIndex = _getDiaIndex(proximoDiaStr);
-
-      // Calcula a diferença de dias a partir de hoje
-      int diffDias = (proximoDiaIndex - now.weekday + 7) % 7;
-
-      // Pega o horário mais próximo também
-      String horaStr = alarm.getClosestHour(horarios);
-      TimeOfDay hora = _parseTimeOfDay(horaStr);
-
-      // Cria a data e hora combinadas do próximo disparo
-      DateTime dataDisparo = DateTime(now.year, now.month, now.day, hora.hour, hora.minute)
-          .add(Duration(days: diffDias));
-
-      int diferencaEmSegundos = dataDisparo.difference(now).inSeconds;
-
-      if (menorDiferenca == null || diferencaEmSegundos < menorDiferenca) {
-        menorDiferenca = diferencaEmSegundos;
-        alarmeMaisProximo = alarm;
-      }
+      List<Hour> horas = await DatabaseHelper.getHours(alarm.id!);
+      listOfNumberOfHoursByAlarm.add(horas.length); 
     }
-
-    return alarmeMaisProximo;
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
+  
+  Future<void> loadNumberOfDaysByAlarm() async {
+    listOfNumberOfDaysByAlarm.clear();
+
+    for (var alarm in listOfAlarms) {
+      List<Day> days = await DatabaseHelper.getDays(alarm.id!);
+      listOfNumberOfDaysByAlarm.add(days.length); 
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+  
+  Future<void> _initializeData() async {
+    await loadAlarms();
+    await loadNumberOfHoursByAlarm();
+    await loadNumberOfDaysByAlarm();
+
+    setState(() {});
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  void _showHelpInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+
+          title: const Text('Ajuda'),
+          
+          content: const Text(
+            'Para adicionar um novo alarme, toque no botão flutuante no canto inferior direito da tela. '
+            'Para ativar ou desativar um alarme existente, pressione e segure por alguns segundos. '
+            'Se preferir editar os detalhes de um alarme, toque sobre ele.',
+            style: TextStyle(fontSize: 14)
+          ),
+
+          actions: [
+            TextButton(
+              child: const Text('Fechar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
   
   @override
   Widget build(BuildContext context) {
-    loadAlarms();
-
     return Scaffold(
 
       /////////////////////////////////////////////////////////////////////////////////////
@@ -101,6 +116,21 @@ class _AlarmViewState extends State<AlarmView> {
       
       appBar: AppBar(
         title: Text('Alarmes'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'helpButton') {
+                _showHelpInfo(context);
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'helpButton',
+                child: Text('Ajuda'),
+              ),
+            ],
+          ),
+        ],
       ),
 
 
@@ -156,16 +186,23 @@ class _AlarmViewState extends State<AlarmView> {
                     itemCount: listOfAlarms.length,
                     itemBuilder: (BuildContext context, int index) {
                       return ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          color: listOfAlarms[index].active == 1 ? const Color.fromARGB(255, 4, 102, 200) : const Color.fromARGB(255, 74, 103, 126),  
+                          color: listOfAlarms[index].active == 1 ? const Color.fromARGB(255, 43, 131, 219) : const Color.fromARGB(255, 97, 128, 151),  
                           child: ListTile(
 
                             title: Text(
-                              '${listOfAlarms[index].name} - id: ${listOfAlarms[index].id}',
+                              listOfAlarms[index].name,
                               style: TextStyle(
                                 color: Colors.white,
                               ),
+                            ),
+
+                            subtitle: Text(
+                              listOfNumberOfHoursByAlarm.length == listOfAlarms.length && listOfNumberOfDaysByAlarm.length == listOfAlarms.length
+                                  ? '${listOfNumberOfHoursByAlarm[index]} horário(s) e ${listOfNumberOfDaysByAlarm[index]} dia(s) da semana'
+                                  : 'Carregando...',
+                              style: TextStyle(color: Colors.white),
                             ),
 
                             trailing: Icon(
@@ -175,11 +212,12 @@ class _AlarmViewState extends State<AlarmView> {
 
                             // Go to the alarm details screen.
                             onTap: () {
-                              Navigator.pushNamed(context, Routes.detailAlarm, arguments: listOfAlarms[index]).then((value) {
-                                if (value == true) {
-                                  setState(() {
-                                  });
-                                }
+                              Navigator.pushNamed(context, Routes.detailAlarm, arguments: listOfAlarms[index])
+                              .then((value) async {
+                                await loadAlarms();
+                                await loadNumberOfHoursByAlarm();
+                                await loadNumberOfDaysByAlarm();
+                                if (mounted) setState(() {});
                               });
                             },
                             
@@ -204,7 +242,6 @@ class _AlarmViewState extends State<AlarmView> {
                               }
 
                               DatabaseHelper.editAlarm(listOfAlarms[index]);
-
                               setState(() {});
                             }, 
 
@@ -212,8 +249,7 @@ class _AlarmViewState extends State<AlarmView> {
                         ),
                       );
                     },
-                    separatorBuilder: (BuildContext context, int index) =>
-                        const Divider(),
+                    separatorBuilder: (BuildContext context, int index) => const Divider(),
                   ),
                 ),
               ]
@@ -230,9 +266,12 @@ class _AlarmViewState extends State<AlarmView> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarmObject': null, 'editMode': false})
-            .then((value) {
+            .then((value) async {
               if (value == true) {
-                setState(() {});
+                await loadAlarms();
+                await loadNumberOfHoursByAlarm();
+                await loadNumberOfDaysByAlarm();
+                if (mounted) setState(() {});
               }
             }
           );
