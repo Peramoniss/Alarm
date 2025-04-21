@@ -1,13 +1,14 @@
 import 'package:despertador/Models/alarm.dart';
 import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/database.dart';
+import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class DetailAlarmView extends StatefulWidget{
   const DetailAlarmView({super.key});
@@ -18,9 +19,11 @@ class DetailAlarmView extends StatefulWidget{
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class _DetailAlarmViewState extends State<DetailAlarmView> {
+  Repository repository = Repository();
   List<Hour> hours = []; 
   List<Day> days = []; 
   Alarm? alarm;
@@ -29,8 +32,8 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
 
   void loadHours(int id) async {
     // alarm = await DatabaseHelper.getAlarm(id);
-    hours = await DatabaseHelper.getHours(id);
-    days = await DatabaseHelper.getDays(id);
+    hours = await repository.getAllHoursFromAlarm(id);
+    days = await repository.getAllDaysFromAlarm(id);
     if (mounted) setState(() {});
   }
 
@@ -63,7 +66,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     );
 
     if (confirm == true) {
-      await DatabaseHelper.deleteAlarm(id);
+      await repository.deleteAlarm(id);
 
       if (!context.mounted) return;
 
@@ -97,7 +100,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     );
 
     if (confirm == true) {
-      await DatabaseHelper.deleteHour(id);
+      await repository.deleteHour(id);
 
       if (!context.mounted) return;
 
@@ -129,8 +132,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     );
 
     if (confirm == true) {
-      await DatabaseHelper.deleteDay(id);
-      //loadHours(alarmId);
+      await repository.deleteDay(id);
 
       if (!context.mounted) return;
 
@@ -266,12 +268,11 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                       style: TextStyle(fontSize: 18),
                     ),
                   ),
-
-                  ///////////////////////////////////////////////////////////////////////////
                   
                   SizedBox(height: 4),
-
-                  // CORREÇÃO AQUI - Adicionar o SizedBox
+                  
+                  ///////////////////////////////////////////////////////////////////////////
+                  
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -280,63 +281,64 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                     ),
                     padding: EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        hours.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Nenhum horário adicionado ainda.',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              )
-                            : SizedBox(
-                                height: 80, // Altura fixa para o ListView
-                                child: ListView.builder(
-                                  itemCount: hours.length,
-                                  itemBuilder: (context, index) {
-                                    final hour = hours[index];
-                                    return ListTile(
-                                      title: Text(hour.time),
-                                      subtitle: Text(hour.answered == 1
-                                          ? 'Respondido'
-                                          : 'Não respondido'),
-
-                                      /*onTap: () {
-                                        Navigator.pushNamed(
-                                          context,
-                                          Routes.addHour,
-                                          arguments: {
-                                            'alarm': parameters,
-                                            'hour': hour,
-                                            'editMode': true,
-                                          },
-                                        ).then((value) {
-                                          if (value == true) {
-                                            loadHours(parameters.id);
-                                          }
-                                        });
-                                      },*/
-
-                                      onLongPress: () {
-                                        _confirmHourDeletion(context, hour.id!);
-                                      },
-                                    );
-                                  },
-                                ),
+                        if (hours.isEmpty)
+                          Center(
+                            child: Text(
+                              'Nenhum horário adicionado ainda.',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          )
+                        else
+                          ...hours.map((hour) {
+                            return Container(
+                              margin: EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 190, 190, 190),
+                                borderRadius: BorderRadius.circular(5),
                               ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+
+                                title: Text(
+                                  hour.time,
+                                  style: TextStyle(fontSize: 16, color: Colors.black),
+                                ),
+
+                                subtitle: Text(hour.answered == 1
+                                  ? 'Respondido'
+                                  : 'Não respondido',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+
+                                onLongPress: () {
+                                  _confirmHourDeletion(context, hour.id!);
+                                }
+                              ),
+                            );
+                          }),
                       ],
                     ),
                   ),
+                  
+                  ///////////////////////////////////////////////////////////////////////////
+                  
                   SizedBox(height: 20),
+                  
+                  ///////////////////////////////////////////////////////////////////////////
+
                   Center(
                     child: Text(
                       "Lista de dias",
                       style: TextStyle(fontSize: 18),
                     ),
                   ),
+
                   SizedBox(height: 4),
 
-                  // CORREÇÃO AQUI - Adicionar o SizedBox
+                  ///////////////////////////////////////////////////////////////////////////
+                  
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -345,47 +347,53 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                     ),
                     padding: EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        days.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Nenhum dia adicionado ainda.',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              )
-                            : SizedBox(
-                                height: 80, // Altura fixa para o ListView
-                                child: ListView.builder(
-                                  itemCount: days.length,
-                                  itemBuilder: (context, index) {
-                                    final day = days[index];
-                                    return ListTile(
-                                      title: Text(day.week_day),
-                                      subtitle: Text(day.today == 1
-                                          ? 'Toca hoje'
-                                          : 'Não toca hoje'),
-                                      // onTap: () {
-                                      //   Navigator.pushNamed(
-                                      //     context,
-                                      //     Routes.addHour,
-                                      //   ).then((value) {
-                                      //     if (value == true) {
-                                      //       loadHours(parameters.id);
-                                      //     }
-                                      //   });
-                                      // },
-                                      onLongPress: () {
-                                        _confirmDayDeletion(context, day.id!);
-                                      },
-                                    );
-                                  },
-                                ),
+                        if (days.isEmpty)
+                          Center(
+                            child: Text(
+                              'Nenhum dia adicionado ainda.',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          )
+                        else
+                          ...days.map((day) {
+                            return Container(
+                              margin: EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 190, 190, 190),
+                                borderRadius: BorderRadius.circular(5),
                               ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+
+                                title: Text(
+                                  Repository().getWeekDay(day.week_day),
+                                  style: TextStyle(fontSize: 16, color: Colors.black),
+                                ),
+
+                                subtitle: Text(day.today == 1
+                                  ? 'Toca hoje'
+                                  : 'Não toca hoje',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+
+                                onLongPress: () {
+                                  _confirmDayDeletion(context, day.id!);
+                                },
+                              ),
+                            );
+                          }),
                       ],
                     ),
                   ),
+
+                  /////////////////////////////////////////////////////////////////////////
+                  
                   SizedBox(height: 40),
+
+                  /////////////////////////////////////////////////////////////////////////
+
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[

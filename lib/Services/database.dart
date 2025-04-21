@@ -4,6 +4,11 @@ import 'package:despertador/Models/hour.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
+
 class DatabaseHelper {
   static const arquivoDoBancoDeDados = 'database.db';
   static const currentVersion = 1;
@@ -25,18 +30,24 @@ class DatabaseHelper {
 
   static late Database _bancoDeDados;
 
-  static iniciarBD() async {
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  static startDatabase() async {
     String caminhoBD = await getDatabasesPath();
     String path = join(caminhoBD, arquivoDoBancoDeDados);
 
     _bancoDeDados = await openDatabase(path,
         version: currentVersion,
-        onCreate: funcaoCriacaoBD);
+        onCreate: createDatabase,
         //onUpgrade: funcaoAtualizarBD,
         //onDowngrade: funcaoDowngradeBD);
+      );
+        
   }
 
-  static Future funcaoCriacaoBD(Database db, int version) async {
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  static Future createDatabase(Database db, int version) async {
     await db.execute('PRAGMA foreign_keys = ON');
 
     await db.execute('''
@@ -66,11 +77,11 @@ class DatabaseHelper {
         FOREIGN KEY ($columnAlarmId) REFERENCES $alarmTable($columnId) ON DELETE CASCADE
       )
     ''');
-//  $columnNum INTEGER, $columnDaysPassed INTEGER,
   }
 
-  /*//atualiza programa. Por enquanto não é necessário
-  Future funcaoAtualizarBD(Database db, int oldVersion, int newVersion) async {
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  /*Future funcaoAtualizarBD(Database db, int oldVersion, int newVersion) async {
     //controle dos comandos sql para novas versões
 
     if (oldVersion != currentVersion){
@@ -85,42 +96,55 @@ class DatabaseHelper {
     //Estava-se na 2 e optou-se por regredir para a 1
   }*/
 
-  static Future<int> insertAlarm(Map<String, dynamic> row) async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<int> insertAlarm(Map<String, dynamic> row) async {
+    await startDatabase();
     return await _bancoDeDados.insert(alarmTable, row);
   }
 
-  static Future<int> insertHour(Map<String, dynamic> row) async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<int> insertHour(Map<String, dynamic> row) async {
+    await startDatabase();
     return await _bancoDeDados.insert(hourTable, row);
   }
 
-  static Future<int> insertDay(Map<String, dynamic> row) async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<int> insertDay(Map<String, dynamic> row) async {
+    await startDatabase();
     return await _bancoDeDados.insert(dayTable, row);
   }
 
-
-  static Future<int> deleteAlarm(int id) async { 
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+  
+  Future<int> deleteAlarm(int id) async { 
+    await startDatabase();
     //aparentemente o cascade já deleta tudo, então isso seria desnecessário, só a deleção do retorno deveria funcionar
     //await _bancoDeDados.delete(hourTable, where: '$columnAlarmId = ?', whereArgs: [id]);
     //TODO: DELETAR TODOS DA DAYTABLE -> _bancoDeDados.delete(dayTable, where: '$columnAlarmId = ?', whereArgs: [id]);
     return _bancoDeDados.delete(alarmTable, where: '$columnId = ?', whereArgs: [id]);
   }
 
-  static Future<int> deleteHour(int id) async { 
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<int> deleteHour(int id) async { 
+    await startDatabase();
     return await _bancoDeDados.delete(hourTable, where: '$columnId = ?', whereArgs: [id]);
   }
 
-  static Future<int> deleteDay(int id) async { 
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<int> deleteDay(int id) async { 
+    await startDatabase();
     return await _bancoDeDados.delete(dayTable, where: '$columnId = ?', whereArgs: [id]);
   }
 
-  static Future<List<Alarm>> getAlarms() async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<List<Alarm>> getAllAlarms() async {
+    await startDatabase();
 
     final List<Map<String, Object?>> alarms =
         await _bancoDeDados.query(alarmTable);
@@ -135,8 +159,10 @@ class DatabaseHelper {
     ];
   }
 
- static Future<Alarm> getAlarm(int id) async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  /*static Future<Alarm> getAlarm(int id) async {
+    await startDatabase();
 
     final result = await _bancoDeDados.query(
       alarmTable,
@@ -160,11 +186,12 @@ class DatabaseHelper {
 
     print(a);
     return a;
-  }
+  }*/
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
-  static Future<List<Hour>> getHours(int id) async {
-    await iniciarBD();
+  Future<List<Hour>> getAllHoursFromAlarm(int id) async {
+    await startDatabase();
 
     final List<Map<String, Object?>> hours =
         await _bancoDeDados.query(hourTable, where: '$columnAlarmId = ?', whereArgs: [id]);
@@ -179,8 +206,10 @@ class DatabaseHelper {
     ];
   }
 
-  static Future<List<Day>> getDays(int id) async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<List<Day>> getAllDaysFromAlarm(int id) async {
+    await startDatabase();
 
     final List<Map<String, Object?>> days =
         await _bancoDeDados.query(dayTable, where: '$columnAlarmId = ?', whereArgs: [id]);
@@ -194,9 +223,10 @@ class DatabaseHelper {
     ];
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
-  static Future<void> editHour(Hour hour) async {
-    await iniciarBD();
+  Future<void> editHour(Hour hour) async {
+    await startDatabase();
 
     await _bancoDeDados.update(
       hourTable,
@@ -206,8 +236,10 @@ class DatabaseHelper {
     );
   }
 
-  static Future<void> editAlarm(Alarm alarm) async {
-    await iniciarBD();
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<void> editAlarm(Alarm alarm) async {
+    await startDatabase();
 
     await _bancoDeDados.update(
       alarmTable,

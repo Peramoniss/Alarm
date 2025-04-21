@@ -1,11 +1,13 @@
 import 'package:despertador/Models/alarm.dart';
 import 'package:despertador/Models/hour.dart';
 import 'package:despertador/Services/database.dart';
+import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class AddHourView extends StatefulWidget {
   const AddHourView({super.key});
@@ -16,9 +18,11 @@ class AddHourView extends StatefulWidget {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class _AddHourViewState extends State<AddHourView> {
+  Repository repository = Repository();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _timeController = TextEditingController();
   late Alarm alarm;
@@ -139,7 +143,7 @@ class _AddHourViewState extends State<AddHourView> {
                       // Hour temp = Hour(time: _timeController.text, alarmId: parametros.id);
                       if (isEdit == true) {
                         editingHour!.time = _timeController.text;
-                        DatabaseHelper.editHour(editingHour!);
+                        repository.updateHour(editingHour!);
                       } else {
                         Map<String, dynamic> row = {
                           DatabaseHelper.columnTime: _timeController.text,
@@ -147,7 +151,7 @@ class _AddHourViewState extends State<AddHourView> {
                           DatabaseHelper.columnAnswered: 0
                         };
 
-                        final id = await DatabaseHelper.insertHour(row);
+                        await repository.insertHour(row);
                       }
 
                       Navigator.pop(context, true); // 'true' informs that the state has changed and must rebuild the screen.
