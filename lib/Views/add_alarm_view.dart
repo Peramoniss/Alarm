@@ -1,10 +1,11 @@
 import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Services/database.dart';
+import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class AddAlarmView extends StatefulWidget {
   const AddAlarmView({super.key});
@@ -15,20 +16,23 @@ class AddAlarmView extends StatefulWidget {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class _AddAlarmViewState extends State<AddAlarmView> {
+  Repository repository = Repository();
+  bool _alarmActivated = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  bool _marcado = false;
+  
 
   Future<void> inserir() async {
     Map<String, dynamic> row = {
-      DatabaseHelper.columnName: _nameController.text,
-      DatabaseHelper.columnActive: _marcado == true ? 1 : 0
+      Repository.columnName: _nameController.text,
+      Repository.columnActive: _alarmActivated == true ? 1 : 0
     };
 
-    final id = await DatabaseHelper.insertAlarm(row);
+    await repository.insertAlarm(row);
   }
 
 
@@ -48,7 +52,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
         isEdit = parametros['editMode'] as bool;
         if (editingAlarm != null && isEdit == true) {
           _nameController.text = editingAlarm!.name;
-          _marcado = editingAlarm!.active == 1 ? true : false;
+          _alarmActivated = editingAlarm!.active == 1 ? true : false;
         }
       }
       _initialized = true;
@@ -113,10 +117,10 @@ class _AddAlarmViewState extends State<AddAlarmView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Switch(
-                      value: _marcado,
+                      value: _alarmActivated,
                       onChanged: (bool value) {
                         setState(() {
-                          _marcado = value ?? false;
+                          _alarmActivated = value;
                         });
                       },
                       activeColor: const Color.fromARGB(255, 4,102,200),
@@ -136,18 +140,16 @@ class _AddAlarmViewState extends State<AddAlarmView> {
 
                       if (isEdit == true) {
                         editingAlarm!.name = _nameController.text;
-                        editingAlarm!.active = _marcado == true ? 1 : 0;
-                        DatabaseHelper.editAlarm(editingAlarm!);
+                        editingAlarm!.active = _alarmActivated == true ? 1 : 0;
+                        repository.updateAlarm(editingAlarm!);
 
                       } else {
-                        Alarm temp = Alarm(name: _nameController.text, active: _marcado == true ? 1 : 0);
-
                         Map<String, dynamic> row = {
-                          DatabaseHelper.columnName: _nameController.text,
-                          DatabaseHelper.columnActive: _marcado == true ? 1 : 0
+                          Repository.columnName: _nameController.text,
+                          Repository.columnActive: _alarmActivated == true ? 1 : 0
                         };
 
-                        final id = await DatabaseHelper.insertAlarm(row);
+                        await repository.insertAlarm(row);
                       }
 
                       ScaffoldMessenger.of(context).showSnackBar(

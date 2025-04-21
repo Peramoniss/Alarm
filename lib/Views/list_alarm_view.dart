@@ -1,13 +1,14 @@
 import 'package:despertador/Models/alarm.dart';
 import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/database.dart';
+import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class AlarmView extends StatefulWidget{
   const AlarmView({super.key});
@@ -18,9 +19,11 @@ class AlarmView extends StatefulWidget{
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class _AlarmViewState extends State<AlarmView> {
+  Repository repository = Repository();
   List<Alarm> listOfAlarms = [];
   List<int> listOfNumberOfHoursByAlarm = [];
   List<int> listOfNumberOfDaysByAlarm = [];
@@ -28,7 +31,7 @@ class _AlarmViewState extends State<AlarmView> {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> loadAlarms() async {
-    listOfAlarms = await DatabaseHelper.getAlarms();
+    listOfAlarms = await repository.getAllAlarms();
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +40,7 @@ class _AlarmViewState extends State<AlarmView> {
     listOfNumberOfHoursByAlarm.clear();
 
     for (var alarm in listOfAlarms) {
-      List<Hour> horas = await DatabaseHelper.getHours(alarm.id!);
+      List<Hour> horas = await repository.getAllHoursFromAlarm(alarm.id!);
       listOfNumberOfHoursByAlarm.add(horas.length); 
     }
   }
@@ -48,7 +51,7 @@ class _AlarmViewState extends State<AlarmView> {
     listOfNumberOfDaysByAlarm.clear();
 
     for (var alarm in listOfAlarms) {
-      List<Day> days = await DatabaseHelper.getDays(alarm.id!);
+      List<Day> days = await repository.getAllDaysFromAlarm(alarm.id!);
       listOfNumberOfDaysByAlarm.add(days.length); 
     }
   }
@@ -241,7 +244,7 @@ class _AlarmViewState extends State<AlarmView> {
                                 );
                               }
 
-                              DatabaseHelper.editAlarm(listOfAlarms[index]);
+                              repository.updateAlarm(listOfAlarms[index]);
                               setState(() {});
                             }, 
 

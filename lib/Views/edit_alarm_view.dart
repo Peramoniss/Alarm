@@ -1,14 +1,14 @@
 import 'package:despertador/Models/alarm.dart';
 import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/database.dart';
 import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class EditAlarmView extends StatefulWidget {
   const EditAlarmView({super.key});
@@ -19,18 +19,21 @@ class EditAlarmView extends StatefulWidget {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+// CLASS                                                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////
 
 class _EditAlarmViewState extends State<EditAlarmView> {
+  Repository repository = Repository();
   List<String> selectedDays = [];
   List<Hour> hours = [];
   List<Day> days = [];
+  bool _initialized = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   late Alarm alarm;
   var parameters;
-  bool _initialized = false;
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   final List<String> allDays = [
     'segunda',
@@ -42,13 +45,15 @@ class _EditAlarmViewState extends State<EditAlarmView> {
     'domingo'
   ];
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   void loadData(int id) async {
-    hours = await DatabaseHelper.getHours(id);
-    days = await DatabaseHelper.getDays(id);
+    hours = await repository.getAllHoursFromAlarm(id);
+    days = await repository.getAllDaysFromAlarm(id);
     if (mounted) setState(() {});
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
   void didChangeDependencies() async {
@@ -69,6 +74,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
     }
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +199,8 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: ListTile(
-
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              
                               title: Text(
                                 hour.time,
                                 style: TextStyle(color: Colors.white),
@@ -209,7 +216,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               trailing: IconButton(
                                 icon: Icon(Icons.delete, color: Colors.white),
                                 onPressed: () async {
-                                  await DatabaseHelper.deleteHour(hour.id!);
+                                  await repository.deleteHour(hour.id!);
                                   setState(() {
                                     hours.remove(hour);
                                   });
@@ -255,12 +262,12 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                                 '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
 
                             Map<String, dynamic> row = {
-                              DatabaseHelper.columnTime: formattedTime,
-                              DatabaseHelper.columnAnswered: 0,
-                              DatabaseHelper.columnAlarmId: alarm.id,
+                              Repository.columnTime: formattedTime,
+                              Repository.columnAnswered: 0,
+                              Repository.columnAlarmId: alarm.id,
                             };
 
-                            await DatabaseHelper.insertHour(row);
+                            await repository.insertHour(row);
                             hours.add(Hour(alarmId: alarm.id!, time: formattedTime));
                             setState(() {});
                           }
@@ -323,7 +330,8 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: ListTile(
-
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              
                               title: Text(
                                 Repository().getWeekDay(day.week_day),
                                 style: TextStyle(fontSize: 16, color: Colors.white),
@@ -332,7 +340,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               trailing: IconButton(
                                 icon: Icon(Icons.delete, color: Colors.white),
                                 onPressed: () async {
-                                  await DatabaseHelper.deleteDay(day.id!);
+                                  await repository.deleteDay(day.id!);
                                   setState(() {
                                     days.remove(day);
                                   });
@@ -402,13 +410,12 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                                                   onPressed: () async {
                                                     if (!days.any((d) => d.week_day == dayToInsert)) {
                                                       Map<String, dynamic> row = {
-                                                        DatabaseHelper.columnWeekDay: dayToInsert,
-                                                        DatabaseHelper.columnToday: 0,
-                                                        DatabaseHelper.columnAlarmId: alarm.id,
+                                                        Repository.columnWeekDay: dayToInsert,
+                                                        Repository.columnToday: 0,
+                                                        Repository.columnAlarmId: alarm.id,
                                                       };
-                                                      await DatabaseHelper.insertDay(row);
+                                                      await repository.insertDay(row);
                                                       Navigator.pop(context);
-
                                                     }
                                                     setState(() {});
                                                   },
@@ -448,7 +455,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     ElevatedButton(
                       onPressed: () async {
                         alarm.name = _nameController.text;
-                        DatabaseHelper.editAlarm(alarm);
+                        repository.updateAlarm(alarm);
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Edição realizada com sucesso!')),
