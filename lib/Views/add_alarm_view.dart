@@ -44,7 +44,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
     if (_initialized == false){
       parametros = ModalRoute.of(context)!.settings.arguments;
       if (parametros is Map<String, dynamic>) {
-        editingAlarm = parametros['alarm'] as Alarm?;
+        editingAlarm = parametros['alarmObject'] as Alarm?;
         isEdit = parametros['editMode'] as bool;
         if (editingAlarm != null && isEdit == true) {
           _nameController.text = editingAlarm!.name;

@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import '../Models/routes.dart';
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
 class EditAlarmView extends StatefulWidget {
   const EditAlarmView({super.key});
 
@@ -13,10 +17,20 @@ class EditAlarmView extends StatefulWidget {
   State<EditAlarmView> createState() => _EditAlarmViewState();
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
 class _EditAlarmViewState extends State<EditAlarmView> {
   List<String> selectedDays = [];
   List<Hour> hours = [];
   List<Day> days = [];
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  late Alarm alarm;
+  var parameters;
+  bool _initialized = false;
+
 
   final List<String> allDays = [
     'segunda',
@@ -28,18 +42,13 @@ class _EditAlarmViewState extends State<EditAlarmView> {
     'domingo'
   ];
 
-  void loadHours(int id) async {
+
+  void loadData(int id) async {
     hours = await DatabaseHelper.getHours(id);
     days = await DatabaseHelper.getDays(id);
     if (mounted) setState(() {});
   }
 
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  late Alarm alarm;
-  var parameters;
-  bool _initialized = false;
 
   @override
   void didChangeDependencies() async {
@@ -52,7 +61,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
         alarm = parameters['alarm'] as Alarm;
       }
 
-      loadHours(alarm.id!);
+      loadData(alarm.id!);
       
       _initialized = true;
       _nameController.text = alarm.name;
@@ -60,29 +69,46 @@ class _EditAlarmViewState extends State<EditAlarmView> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-      loadHours(alarm.id!);
+    loadData(alarm.id!);
 
     return Scaffold(
+
+      /////////////////////////////////////////////////////////////////////////////////////
+      // APP BAR                                                                         //
+      /////////////////////////////////////////////////////////////////////////////////////
+      
       appBar: AppBar(
         title: Text('Editar alarme'),
       ),
+
+
+      /////////////////////////////////////////////////////////////////////////////////////
+      // BODY                                                                            //
+      /////////////////////////////////////////////////////////////////////////////////////
+      
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+
                 Center(
                   child: Text(
                     "Nome do alarme",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
+
+
                 SizedBox(height: 4),
+
+
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -90,12 +116,16 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ),
                 ),
                 SizedBox(height: 20),
+
+
                 Center(
                   child: Text(
                     "Ativação",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
+
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -112,14 +142,22 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     ),
                   ],
                 ),
+
+
                 SizedBox(height: 20),
+
+
                 Center(
                   child: Text(
                     "Lista de horários",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
+
+
                 SizedBox(height: 4),
+
+
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -131,61 +169,75 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       hours.isEmpty
-                          ? Center(
-                              child: Text(
-                                'Nenhum horário adicionado ainda.',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            )
-                          : Column(
-                              children: hours.map((hour) {
-                                return Container(
-                                  margin: EdgeInsets.symmetric(vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Color.fromARGB(255, 4, 102, 200),
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  child: ListTile(
-                                    title: Text(
-                                      hour.time,
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    subtitle: Text(
-                                      hour.answered == 1
-                                          ? 'Respondido'
-                                          : 'Não respondido',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    trailing: IconButton(
-                                      icon: Icon(Icons.delete, color: Colors.white),
-                                      onPressed: () async {
-                                        await DatabaseHelper.deleteHour(hour.id!);
-                                        setState(() {
-                                          
-                                          hours.remove(hour);
-                                        });
-                                      },
-                                    ),
-                                    onTap: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        Routes.addHour,
-                                        arguments: {
-                                          'alarm': alarm,
-                                          'hour': hour,
-                                          'editMode': true,
-                                        },
-                                      ).then((value) {
-                                        if (value == true) {
-                                          loadHours(alarm.id!);
-                                        }
-                                      });
-                                    }
-                                  ),
-                                );
-                              }).toList(),
+
+                      ? 
+                      
+                      Center(
+                        child: Text(
+                          'Nenhum horário adicionado ainda.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      )
+
+                      : 
+                      
+                      Column(
+                        children: hours.map((hour) {
+                          return Container(
+                            margin: EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Color.fromARGB(255, 4, 102, 200),
+                              borderRadius: BorderRadius.circular(5),
                             ),
+                            child: ListTile(
+
+                              title: Text(
+                                hour.time,
+                                style: TextStyle(color: Colors.white),
+                              ),
+
+                              subtitle: Text(
+                                hour.answered == 1
+                                    ? 'Respondido'
+                                    : 'Não respondido',
+                                style: TextStyle(color: Colors.white),
+                              ),
+
+                              trailing: IconButton(
+                                icon: Icon(Icons.delete, color: Colors.white),
+                                onPressed: () async {
+                                  await DatabaseHelper.deleteHour(hour.id!);
+                                  setState(() {
+                                    hours.remove(hour);
+                                  });
+                                },
+                              ),
+
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  Routes.addHour,
+                                  arguments: {
+                                    'alarm': alarm,
+                                    'hour': hour,
+                                    'editMode': true,
+                                  },
+                                ).then((value) {
+                                  if (value == true) {
+                                    loadData(alarm.id!);
+                                  }
+                                });
+                              }
+
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      
                       SizedBox(height: 12),
+                      
+
                       ElevatedButton(
                         onPressed: () async {
                           final TimeOfDay? pickedTime = await showTimePicker(
@@ -203,11 +255,12 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               DatabaseHelper.columnAlarmId: alarm.id,
                             };
 
-                            final id = await DatabaseHelper.insertHour(row);
+                            await DatabaseHelper.insertHour(row);
                             hours.add(Hour(alarmId: alarm.id!, time: formattedTime));
                             setState(() {});
                           }
                         },
+
                         child: Text(
                           'Adicionar',
                           style: TextStyle(fontSize: 16, color: Colors.black),
@@ -216,14 +269,22 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     ],
                   ),
                 ),
+
+
                 SizedBox(height: 20),
+
+                
                 Center(
                   child: Text(
                     "Lista de dias",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
+
+
                 SizedBox(height: 4),
+
+
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -235,46 +296,58 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       days.isEmpty
-                          ? Center(
-                              child: Text(
-                                'Nenhum dia adicionado ainda.',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            )
-                          : Column(
-                              children: days.map((day) {
-                                return Container(
-                                  margin: EdgeInsets.symmetric(vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Color.fromARGB(255, 4, 102, 200),
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  child: ListTile(
-                                    title: Text(
-                                      day.week_day,
-                                      style: TextStyle(fontSize: 16, color: Colors.white),
-                                    ),
-                                    trailing: IconButton(
-                                      icon: Icon(Icons.delete, color: Colors.white),
-                                      onPressed: () async {
-                                        await DatabaseHelper.deleteDay(day.id!);
-                                        setState(() {
-                                          days.remove(day);
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+                      ? 
+                      
+                      Center(
+                        child: Text(
+                          'Nenhum dia adicionado ainda.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      )
+
+                      : 
+                      
+                      Column(
+                        children: days.map((day) {
+                          return Container(
+                            margin: EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Color.fromARGB(255, 4, 102, 200),
+                              borderRadius: BorderRadius.circular(5),
                             ),
+                            child: ListTile(
+
+                              title: Text(
+                                day.week_day,
+                                style: TextStyle(fontSize: 16, color: Colors.white),
+                              ),
+
+                              trailing: IconButton(
+                                icon: Icon(Icons.delete, color: Colors.white),
+                                onPressed: () async {
+                                  await DatabaseHelper.deleteDay(day.id!);
+                                  setState(() {
+                                    days.remove(day);
+                                  });
+                                },
+                              ),
+
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      
                       SizedBox(height: 12),
+
+
                       ElevatedButton(
                         onPressed: () {
                           showModalBottomSheet(
                             context: context,
                             builder: (context) {
                               return SizedBox(
-                                height: 300, // Adjust height as needed
+                                height: 300,
                                 child: ListView.builder(
                                   itemCount: allDays.length,
                                   itemBuilder: (context, index) {
@@ -284,25 +357,28 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                                       child: Container(
                                         color: const Color.fromARGB(255, 4, 102, 200),
                                         child: ListTile(
+
                                           title: Text(
                                             day,
                                             style: TextStyle(fontSize: 16, color: Colors.white),
                                           ),
+
                                           trailing: IconButton(
                                             icon: Icon(
                                               days.contains(day)
-                                                  ? Icons.check_circle
-                                                  : Icons.add_circle,
+                                                ? Icons.check_circle
+                                                : Icons.add_circle,
                                               color: Colors.white,
                                             ),
+
                                             onPressed: () async {
                                               if (!days.any((d) => d.week_day == day)) {
                                                 Map<String, dynamic> row = {
-                                                    DatabaseHelper.columnWeekDay: day,
-                                                    DatabaseHelper.columnToday: 0,
-                                                    DatabaseHelper.columnAlarmId: alarm.id,
-                                                  };
-                                                  var id = await DatabaseHelper.insertDay(row);
+                                                  DatabaseHelper.columnWeekDay: day,
+                                                  DatabaseHelper.columnToday: 0,
+                                                  DatabaseHelper.columnAlarmId: alarm.id,
+                                                };
+                                                await DatabaseHelper.insertDay(row);
                                               }
 
                                               setState(() {});
@@ -317,25 +393,34 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                             },
                           );
                         },
+
                         child: Text(
                           'Adicionar',
                           style: TextStyle(fontSize: 16, color: Colors.black),
                         ),
                       ),
-
                     ],
                   ),
                 ),
+
+
                 SizedBox(height: 20),
+                
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+                    // Save changes button.
                     ElevatedButton(
                       onPressed: () async {
-                        // Salvar alterações
                         alarm.name = _nameController.text;
                         DatabaseHelper.editAlarm(alarm);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Edição realizada com sucesso!')),
+                        );
                       },
+
                       child: Text(
                         'Salvar',
                         style: TextStyle(fontSize: 18, color: Colors.black),
@@ -348,6 +433,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
           ),
         ),
       ),
+
     );
   }
 }

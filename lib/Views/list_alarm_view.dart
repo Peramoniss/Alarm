@@ -21,12 +21,14 @@ class AlarmView extends StatefulWidget{
 
 
 class _AlarmViewState extends State<AlarmView> {
-  List<Alarm> alarms = []; 
+  List<Alarm> listOfAlarms = []; 
   
+
   void loadAlarms() async {
-    alarms = await DatabaseHelper.getAlarms();
+    listOfAlarms = await DatabaseHelper.getAlarms();
     setState(() {});
   }
+  
 
   int _getDiaIndex(String dia) {
     const dias = {
@@ -38,22 +40,24 @@ class _AlarmViewState extends State<AlarmView> {
       'sabado': 6,
       'domingo': 7
     };
-    return dias[dia.toLowerCase()] ?? 1; // default: segunda
+    return dias[dia.toLowerCase()] ?? 1; // Default value: 'segunda'.
   }
+
 
   TimeOfDay _parseTimeOfDay(String time) {
     final parts = time.split(':');
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  Future<Alarm?> getAlarmeMaisProximo(List<Alarm> alarms) async {
-    // if (alarms.isEmpty) return null;
+
+  Future<Alarm?> getAlarmeMaisProximo(List<Alarm> listOfAlarms) async {
+    // if (listOfAlarms.isEmpty) return null;
 
     final now = DateTime.now();
     int? menorDiferenca;
     Alarm? alarmeMaisProximo;
 
-    for (var alarm in alarms) {
+    for (var alarm in listOfAlarms) {
       // Pega os dias e horários do alarme
       List<Day> dias = await DatabaseHelper.getDays(alarm.id!); // Supondo que você tenha isso dentro do objeto
       List<Hour> horarios = await DatabaseHelper.getHours(alarm.id!);
@@ -84,13 +88,10 @@ class _AlarmViewState extends State<AlarmView> {
     return alarmeMaisProximo;
   }
 
-
   
   @override
   Widget build(BuildContext context) {
     loadAlarms();
-
-
 
     return Scaffold(
 
@@ -111,70 +112,111 @@ class _AlarmViewState extends State<AlarmView> {
         padding: const EdgeInsets.all(20.0),
         child: Center(
           child: Column(
-            children: <Widget>[
-              SizedBox(height: 10),
-
-              Text(
-                'Alarme em 10 horas e 33 minutos',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                )
-              ),
-
-
-              SizedBox(height: 16),
-
+            children: listOfAlarms.isEmpty
+              ? // If the alarm list is empty /////////////////////////////////////////////
               
-              Expanded(
-                child: ListView.separated(
-                  itemCount: alarms.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: Container(
-                        color: alarms[index].active == 1 ? const Color.fromARGB(255, 4, 102, 200) : const Color.fromARGB(255, 74, 103, 126),  
-                        child: ListTile(
+              [
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.alarm_outlined, size: 50, color: Colors.grey),
+                        SizedBox(height: 10),
+                        Text(
+                          "Nenhum alarme adicionado!",
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              ]
 
-                          title: Text(
-                            '${alarms[index].name} - id: ${alarms[index].id}',
-                            style: TextStyle(
+              : // If the alarm list is not empty /////////////////////////////////////////
+
+              [
+                SizedBox(height: 10),
+                
+
+                Text(
+                  'Próximo alarme em 10 horas e 33 minutos',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                  )
+                ),
+
+
+                SizedBox(height: 20),
+                
+
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: listOfAlarms.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: Container(
+                          color: listOfAlarms[index].active == 1 ? const Color.fromARGB(255, 4, 102, 200) : const Color.fromARGB(255, 74, 103, 126),  
+                          child: ListTile(
+
+                            title: Text(
+                              '${listOfAlarms[index].name} - id: ${listOfAlarms[index].id}',
+                              style: TextStyle(
+                                color: Colors.white,
+                              ),
+                            ),
+
+                            trailing: Icon(
+                              listOfAlarms[index].active == 1 ? Icons.check_circle_outlined : Icons.cancel_outlined,
                               color: Colors.white,
                             ),
-                          ),
 
-                          trailing: Icon(
-                            alarms[index].active == 1 ? Icons.check_circle_outlined : Icons.cancel_outlined,
-                            color: Colors.white,
-                          ),
-
-                          onTap: () {
-                            Navigator.pushNamed(context, Routes.detailAlarm, arguments: alarms[index]).then((value) {
-                              if (value == true) {
-                                setState(() {
-                                });
+                            // Go to the alarm details screen.
+                            onTap: () {
+                              Navigator.pushNamed(context, Routes.detailAlarm, arguments: listOfAlarms[index]).then((value) {
+                                if (value == true) {
+                                  setState(() {
+                                  });
+                                }
+                              });
+                            },
+                            
+                            // Activates or deactivates the alarm.
+                            onLongPress: () {
+                              if (listOfAlarms[index].active == 1) {
+                                listOfAlarms[index].active = 0;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Alarme desativado.'),
+                                    duration: Duration(milliseconds: 1500),
+                                  ),
+                                );
+                              } else {
+                                listOfAlarms[index].active = 1;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Alarme ativado.'),
+                                    duration: Duration(milliseconds: 1500),
+                                  ),
+                                );
                               }
-                            });
-                          },
 
-                          onLongPress: () {
-                            Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarm': alarms[index], 'editMode': true}).then((value) {
-                              if (value == true) {
-                                setState(() {
-                                });
-                              }
-                            });
-                          },
+                              DatabaseHelper.editAlarm(listOfAlarms[index]);
 
+                              setState(() {});
+                            }, 
+
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  separatorBuilder: (BuildContext context, int index) =>
-                      const Divider(),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) =>
+                        const Divider(),
+                  ),
                 ),
-              ),
-            ],
+              ]
           ),
         ),
       
@@ -187,11 +229,13 @@ class _AlarmViewState extends State<AlarmView> {
       
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarm': null, 'editMode': false}).then((value) {
-          if (value == true) {
-            setState(() {});
-          }
-        });
+          Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarmObject': null, 'editMode': false})
+            .then((value) {
+              if (value == true) {
+                setState(() {});
+              }
+            }
+          );
         },
         child: Icon(Icons.add),
       ),
