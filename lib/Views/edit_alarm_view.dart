@@ -2,6 +2,7 @@ import 'package:despertador/Models/alarm.dart';
 import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
 import 'package:despertador/Services/database.dart';
+import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 
@@ -104,9 +105,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ),
                 ),
 
-
                 SizedBox(height: 4),
-
 
                 TextFormField(
                   controller: _nameController,
@@ -114,8 +113,12 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     border: OutlineInputBorder(),
                   ),
                 ),
+
+                ///////////////////////////////////////////////////////////////////////////
+                
                 SizedBox(height: 20),
 
+                ///////////////////////////////////////////////////////////////////////////
 
                 Center(
                   child: Text(
@@ -123,7 +126,6 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
-
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -142,9 +144,11 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ],
                 ),
 
+                ///////////////////////////////////////////////////////////////////////////
 
                 SizedBox(height: 20),
 
+                ///////////////////////////////////////////////////////////////////////////
 
                 Center(
                   child: Text(
@@ -153,9 +157,9 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ),
                 ),
 
-
                 SizedBox(height: 4),
 
+                ///////////////////////////////////////////////////////////////////////////
 
                 Container(
                   width: double.infinity,
@@ -233,9 +237,11 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                         }).toList(),
                       ),
 
+                      /////////////////////////////////////////////////////////////////////
                       
                       SizedBox(height: 12),
-                      
+
+                      /////////////////////////////////////////////////////////////////////
 
                       ElevatedButton(
                         onPressed: () async {
@@ -269,9 +275,11 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ),
                 ),
 
-
+                ///////////////////////////////////////////////////////////////////////////
+                
                 SizedBox(height: 20),
-
+                
+                ///////////////////////////////////////////////////////////////////////////
                 
                 Center(
                   child: Text(
@@ -280,9 +288,9 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ),
                 ),
 
-
                 SizedBox(height: 4),
 
+                ///////////////////////////////////////////////////////////////////////////
 
                 Container(
                   width: double.infinity,
@@ -317,7 +325,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                             child: ListTile(
 
                               title: Text(
-                                day.week_day,
+                                Repository().getWeekDay(day.week_day),
                                 style: TextStyle(fontSize: 16, color: Colors.white),
                               ),
 
@@ -336,64 +344,89 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                         }).toList(),
                       ),
 
+                      /////////////////////////////////////////////////////////////////////
                       
                       SizedBox(height: 12),
 
+                      /////////////////////////////////////////////////////////////////////
 
                       ElevatedButton(
                         onPressed: () {
                           showModalBottomSheet(
                             context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            ),
                             builder: (context) {
-                              return SizedBox(
-                                height: 300,
-                                child: ListView.builder(
-                                  itemCount: allDays.length,
-                                  itemBuilder: (context, index) {
-                                    final day = allDays[index];
-                                    return ClipRRect(
-                                      borderRadius: BorderRadius.circular(5),
-                                      child: Container(
-                                        color: const Color.fromARGB(255, 4, 102, 200),
-                                        child: ListTile(
+                              return Padding(
+                                padding: MediaQuery.of(context).viewInsets,
+                                child: SizedBox(
+                                  height: 300,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10.0),
+                                    child: ListView.builder(
+                                      itemCount: Repository().weekDays.length,
+                                      itemBuilder: (context, index) {
+                                        final dayToDisplay = Repository().weekDays[index];
+                                        final dayToInsert = allDays[index];
 
-                                          title: Text(
-                                            day,
-                                            style: TextStyle(fontSize: 16, color: Colors.white),
+                                        return Padding(
+                                          padding: EdgeInsets.only(
+                                            top: index == 0 ? 8.0 : 5.0,
+                                            bottom: 5.0,
                                           ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: Container(
+                                              color: const Color.fromARGB(255, 190, 190, 190),
+                                              child: ListTile(
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
 
-                                          trailing: IconButton(
-                                            icon: Icon(
-                                              days.contains(day)
-                                                ? Icons.check_circle
-                                                : Icons.add_circle,
-                                              color: Colors.white,
+                                                title: Text(
+                                                  dayToDisplay,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    color: Color.fromARGB(255, 43, 43, 43),
+                                                  ),
+                                                ),
+
+                                                trailing: IconButton(
+                                                  icon: Icon(
+                                                    days.any((d) => d.week_day == dayToInsert)
+                                                        ? Icons.check_circle
+                                                        : Icons.add_circle,
+                                                    color: const Color.fromARGB(255, 43, 43, 43),
+                                                  ),
+
+                                                  onPressed: () async {
+                                                    if (!days.any((d) => d.week_day == dayToInsert)) {
+                                                      Map<String, dynamic> row = {
+                                                        DatabaseHelper.columnWeekDay: dayToInsert,
+                                                        DatabaseHelper.columnToday: 0,
+                                                        DatabaseHelper.columnAlarmId: alarm.id,
+                                                      };
+                                                      await DatabaseHelper.insertDay(row);
+                                                      Navigator.pop(context);
+
+                                                    }
+                                                    setState(() {});
+                                                  },
+                                                ),
+                                              ),
                                             ),
-
-                                            onPressed: () async {
-                                              if (!days.any((d) => d.week_day == day)) {
-                                                Map<String, dynamic> row = {
-                                                  DatabaseHelper.columnWeekDay: day,
-                                                  DatabaseHelper.columnToday: 0,
-                                                  DatabaseHelper.columnAlarmId: alarm.id,
-                                                };
-                                                await DatabaseHelper.insertDay(row);
-                                              }
-
-                                              setState(() {});
-                                            },
                                           ),
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                        );
+                                      },
+                                    ),
+                                  ),
                                 ),
                               );
                             },
                           );
                         },
 
-                        child: Text(
+                        child: const Text(
                           'Adicionar',
                           style: TextStyle(fontSize: 16),
                         ),
@@ -402,10 +435,12 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   ),
                 ),
 
+                ///////////////////////////////////////////////////////////////////////////
 
                 SizedBox(height: 20),
                 
-
+                ///////////////////////////////////////////////////////////////////////////
+                
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
