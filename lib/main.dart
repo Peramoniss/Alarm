@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
       navigatorKey: Routes.nav,
 
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color.fromARGB(255, 230, 230, 230),
+        scaffoldBackgroundColor: const Color.fromARGB(255, 238, 238, 238),
 
         appBarTheme: AppBarTheme(
           backgroundColor: const Color.fromARGB(255, 255, 255, 255),
