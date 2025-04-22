@@ -36,16 +36,10 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     days = await repository.getAllDaysFromAlarm(id);
     nextOccurrenceText = await getNextAlarmOccurrence(days, hours);
     days = await repository.getAllDaysFromAlarm(id);
-    for (var day in days){
-      print(day.toMap());
-      }
     if (mounted) setState(() {});
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
-  
-  
-  ///
 
   int switchWeekday(Day day){
     int weekday;
@@ -78,12 +72,14 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
 
     return weekday;
   }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
   
   Future<String> getNextAlarmOccurrence(List<Day> days, List<Hour> hours) async {
     if (alarm == null || alarm!.active == 0) return "Desativado";
     if (days.isEmpty || hours.isEmpty) return "Sem horários ou dias";
 
-    DateTime now = DateTime.now();
+    DateTime now = DateTime.now().toLocal();
     List<DateTime> futureOccurrences = [];
     int today = now.weekday;
 
@@ -98,10 +94,16 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
 
         int dayDiff = ((weekday - today + 7) % 7).toInt();
 
-        DateTime candidate = now.add(Duration(days: dayDiff));
-        candidate = DateTime(candidate.year, candidate.month, candidate.day, hourPart, minutePart);
+        DateTime candidateDate = now.add(Duration(days: dayDiff));
+        DateTime candidate = DateTime(
+          candidateDate.year,
+          candidateDate.month,
+          candidateDate.day,
+          hourPart,
+          minutePart,
+        );
 
-        if (dayDiff == 0 && candidate.isBefore(now)) {
+        if (candidate.isBefore(now)) {
           candidate = candidate.add(Duration(days: 7));
         }
 
@@ -125,7 +127,6 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
 
     return "$weekDayText, $hourText";
   }
-
 
   /////////////////////////////////////////////////////////////////////////////////////////
 

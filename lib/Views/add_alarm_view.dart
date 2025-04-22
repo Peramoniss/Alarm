@@ -25,6 +25,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> inserir() async {
     Map<String, dynamic> row = {
@@ -35,6 +36,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
     await repository.insertAlarm(row);
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   bool _initialized = false;
   Alarm? editingAlarm;
@@ -59,6 +61,8 @@ class _AddAlarmViewState extends State<AddAlarmView> {
     } 
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,6 +104,12 @@ class _AddAlarmViewState extends State<AddAlarmView> {
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                   ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Este campo é obrigatório';
+                    }
+                    return null;
+                  },
                 ),
 
                 SizedBox(height: 16),

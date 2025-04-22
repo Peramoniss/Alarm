@@ -68,7 +68,7 @@ class _AlarmViewState extends State<AlarmView> {
     await loadNumberOfDaysByAlarm();
     await loadNumberOfHoursByAlarm();
 
-    DateTime now = DateTime.now();
+    DateTime now = DateTime.now().toLocal();
 
     Alarm? nextAlarm;
     int? smallestDifferenceInSeconds;
