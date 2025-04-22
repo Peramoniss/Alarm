@@ -27,15 +27,84 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
   List<Hour> hours = []; 
   List<Day> days = []; 
   Alarm? alarm;
+  String nextOccurrenceText = "Sem horários ou dias";
   
   /////////////////////////////////////////////////////////////////////////////////////////
 
   void loadHours(int id) async {
-    // alarm = await DatabaseHelper.getAlarm(id);
     hours = await repository.getAllHoursFromAlarm(id);
     days = await repository.getAllDaysFromAlarm(id);
+    nextOccurrenceText = getNextAlarmOccurrence(days, hours);
     if (mounted) setState(() {});
   }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+  
+  String getNextAlarmOccurrence(List<Day> days, List<Hour> hours) {
+    if (alarm == null || alarm!.active == 0) return "Desativado";
+    if (days.isEmpty || hours.isEmpty) return "Sem horários ou dias";
+
+    DateTime now = DateTime.now();
+    List<DateTime> futureOccurrences = [];
+
+    for (var day in days) {
+      for (var hour in hours) {
+        List<String> parts = hour.time.split(':');
+        int hourPart = int.parse(parts[0]);
+        int minutePart = int.parse(parts[1].split(' ')[0]);
+        int weekday;
+
+        switch (day.week_day.toLowerCase()) {
+          case 'segunda':
+            weekday = 2;
+            break;
+          case 'terca':
+            weekday = 3;
+            break;
+          case 'quarta':
+            weekday = 4;
+            break;
+          case 'quinta':
+            weekday = 5;
+            break;
+          case 'sexta':
+            weekday = 6;
+            break;
+          case 'sabado':
+            weekday = 7;
+            break;
+          case 'domingo':
+            weekday = 8;
+            break;
+          default:
+            weekday = 2;
+            break;
+        }
+
+        int today = now.weekday;
+        int flutterWeekDay = weekday == 1 ? 7 : weekday - 1;
+        int dayDiff = ((flutterWeekDay - today + 7) % 7).toInt();
+
+        DateTime candidate = now.add(Duration(days: dayDiff));
+        candidate = DateTime(candidate.year, candidate.month, candidate.day, hourPart, minutePart);
+
+        if (dayDiff == 0 && candidate.isBefore(now)) {
+          candidate = candidate.add(Duration(days: 7));
+        }
+
+        futureOccurrences.add(candidate);
+      }
+    }
+
+    futureOccurrences.sort();
+    DateTime next = futureOccurrences.first;
+
+    String weekDayText = Repository().weekDays[next.weekday - 1];
+    String hourText = '${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}';
+
+    return "$weekDayText, $hourText";
+  }
+
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -151,6 +220,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
     if (ModalRoute.of(context)!.settings.arguments != null) {
       if (ModalRoute.of(context)!.settings.arguments is Alarm) {
         parameters = ModalRoute.of(context)!.settings.arguments as Alarm;
+        alarm = parameters;
       }
     }
 
@@ -246,8 +316,7 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                       children: [
                         Center(
                           child: Text(
-                            //'${diaMaisProximo}, ${closest}',,
-                            "Segunda-feira, 09:00",
+                            nextOccurrenceText,
                             textAlign: TextAlign.center,
                             style: TextStyle(fontSize: 24),
                           ),
