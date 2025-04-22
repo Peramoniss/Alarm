@@ -1,6 +1,5 @@
 import 'package:despertador/Models/alarm.dart';
 import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/database.dart';
 import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
 
@@ -118,37 +117,21 @@ class _AddHourViewState extends State<AddHourView> {
                 SizedBox(height: 16),
 
                 ///////////////////////////////////////////////////////////////////////////
-                
-                /*Text('Repeat on:'),
-                Column(
-                  children: List.generate(7, (index) {
-                    return CheckboxListTile(
-                      title: Text(_dayNames[index]),
-                      value: _daysController[index],
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _daysController[index] = value ?? false;
-                        });
-                      },
-                    );
-                  }),
-                ),*/
-
-                ///////////////////////////////////////////////////////////////////////////
 
                 SizedBox(height: 16),
+
                 ElevatedButton(
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      // Hour temp = Hour(time: _timeController.text, alarmId: parametros.id);
+                      Hour(time: _timeController.text, alarmId: parametros.id);
                       if (isEdit == true) {
                         editingHour!.time = _timeController.text;
                         repository.updateHour(editingHour!);
                       } else {
                         Map<String, dynamic> row = {
-                          DatabaseHelper.columnTime: _timeController.text,
-                          DatabaseHelper.columnAlarmId: alarm.id,
-                          DatabaseHelper.columnAnswered: 0
+                          Repository.columnTime: _timeController.text,
+                          Repository.columnAlarmId: alarm.id,
+                          Repository.columnAnswered: 0
                         };
 
                         await repository.insertHour(row);
@@ -160,7 +143,7 @@ class _AddHourViewState extends State<AddHourView> {
 
                   child: Text(
                     'Salvar',
-                    style: TextStyle(fontSize: 18, color: Colors.black),
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ],

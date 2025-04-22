@@ -162,7 +162,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
 
                   child: Text(
                     'Salvar',
-                    style: TextStyle(fontSize: 18, color: Colors.black),
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ],

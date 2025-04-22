@@ -3,6 +3,7 @@ import 'package:despertador/Models/day.dart';
 import 'package:despertador/Models/hour.dart';
 import 'package:despertador/Services/repository.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../Models/routes.dart';
 
 
@@ -27,6 +28,10 @@ class _AlarmViewState extends State<AlarmView> {
   List<Alarm> listOfAlarms = [];
   List<int> listOfNumberOfHoursByAlarm = [];
   List<int> listOfNumberOfDaysByAlarm = [];
+  late String nextAlarmText;
+  late String nextAlarmDayText;
+  late String nextAlarmHourText;
+  bool _allAlarmsDisabled = true;
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -57,11 +62,139 @@ class _AlarmViewState extends State<AlarmView> {
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<void> findNextAlarm() async {
+    await loadAlarms();
+    await loadNumberOfDaysByAlarm();
+    await loadNumberOfHoursByAlarm();
+
+    DateTime now = DateTime.now();
+
+    Alarm? nextAlarm;
+    int? smallestDifferenceInSeconds;
+
+    for (var alarm in listOfAlarms) {
+      if (alarm.active == 1) {
+        List<Day> days = await repository.getAllDaysFromAlarm(alarm.id!);
+        List<Hour> hours = await repository.getAllHoursFromAlarm(alarm.id!);
+
+        for (var day in days) {
+          String weekDay = day.week_day;
+          int dayIndex = _getDayIndex(weekDay);
+
+          for (var hour in hours) {
+            TimeOfDay alarmTime = _parseTimeOfDay(hour.time);
+
+            DateTime alarmDateTime = _getNextAlarmDateTime(now, dayIndex, alarmTime);
+
+            int differenceInSeconds = alarmDateTime.isAfter(now)
+              ? alarmDateTime.difference(now).inSeconds
+              : alarmDateTime.add(Duration(days: 7)).difference(now).inSeconds;
+
+            if (smallestDifferenceInSeconds == null || differenceInSeconds < smallestDifferenceInSeconds) {
+              smallestDifferenceInSeconds = differenceInSeconds;
+              nextAlarm = alarm;
+            }
+          }
+        }
+      }
+    }
+
+    if (nextAlarm != null) {
+      nextAlarmText = await _formatNextAlarmText(nextAlarm, now);
+      setState(() {
+        _allAlarmsDisabled = false;
+      });
+    } else {
+      nextAlarmText = 'Todos os alarmes estão desativados.';
+      setState(() {
+        _allAlarmsDisabled = true;
+      });
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  int _getDayIndex(String weekDay) {
+    const daysOfWeek = {
+      'segunda': 1,
+      'terca': 2,
+      'quarta': 3,
+      'quinta': 4,
+      'sexta': 5,
+      'sabado': 6,
+      'domingo': 7
+    };
+
+    return daysOfWeek[weekDay.toLowerCase()] ?? 1; // Default para segunda-feira
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  TimeOfDay _parseTimeOfDay(String time) {
+    final parts = time.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1].split(' ')[0]));
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  DateTime _getNextAlarmDateTime(DateTime now, int dayIndex, TimeOfDay alarmTime) {
+    DateTime nextAlarmDateTime = DateTime(now.year, now.month, now.day, alarmTime.hour, alarmTime.minute);
+  
+    if (nextAlarmDateTime.weekday < dayIndex) {
+      nextAlarmDateTime = nextAlarmDateTime.add(Duration(days: dayIndex - nextAlarmDateTime.weekday));
+    } else if (nextAlarmDateTime.weekday > dayIndex) {
+      nextAlarmDateTime = nextAlarmDateTime.add(Duration(days: 7 - nextAlarmDateTime.weekday + dayIndex));
+    }
+
+    return nextAlarmDateTime;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<String> _formatNextAlarmText(Alarm alarm, DateTime now) async {
+    List<Day> days = await repository.getAllDaysFromAlarm(alarm.id!);
+    List<Hour> hours = await repository.getAllHoursFromAlarm(alarm.id!);
+    Day nextDay = days.firstWhere((d) => d.week_day == alarm.getProximoDia(days));
+    Hour nextHour = hours.firstWhere((h) => h.time == alarm.getClosestHour(hours));
+    DateFormat timeFormat = DateFormat('hh:mm');
+    DateTime parsedTime = timeFormat.parse(nextHour.time);
+    DateTime nextAlarmTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);
+    String formattedTime = DateFormat('HH:mm').format(nextAlarmTime);
+    nextAlarmDayText = Repository().getWeekDay(nextDay.week_day).toLowerCase();
+    nextAlarmHourText = formattedTime;
+    return '${Repository().getWeekDay(nextDay.week_day)}, $formattedTime';
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  String _getDayPrefix(String day) {
+    if (day == 'Sábado' || day == 'Domingo') {
+      return 'no';
+    } else {
+      return 'na';
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  String _getHourPrefix(String hourText) {
+    final hour = int.tryParse(hourText.split(':')[0]) ?? 0;
+
+    if (hour == 0 || hour == 1) {
+      return 'à';
+    } else {
+      return 'às';
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
   
   Future<void> _initializeData() async {
     await loadAlarms();
     await loadNumberOfHoursByAlarm();
     await loadNumberOfDaysByAlarm();
+    await findNextAlarm();
 
     setState(() {});
   }
@@ -169,65 +302,81 @@ class _AlarmViewState extends State<AlarmView> {
               : // If the alarm list is not empty /////////////////////////////////////////
 
               [
-                SizedBox(height: 10),
-                
-
-                Text(
-                  'Próximo alarme em 10 horas e 33 minutos',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                  )
-                ),
-
-
-                SizedBox(height: 20),
-                
-
                 Expanded(
                   child: ListView.separated(
-                    itemCount: listOfAlarms.length,
-                    itemBuilder: (BuildContext context, int index) {
+                    itemCount: listOfAlarms.length + 1, // +1 for the text.
+                    
+                    separatorBuilder: (context, index) {
+                      if (index == 0) {
+                        return SizedBox.shrink();
+                      }
+                      return const Divider();
+                    },
+
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+                          child: Column(
+                            children: [
+                              Text(
+                                _allAlarmsDisabled
+                                    ? nextAlarmText
+                                    : 'Próximo alarme ${_getDayPrefix(nextAlarmDayText)} \n'
+                                      '$nextAlarmDayText ${_getHourPrefix(nextAlarmHourText)} $nextAlarmHourText',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 24),
+                              ),
+                              SizedBox(height: 10),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final alarmIndex = index - 1;
+
                       return ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          color: listOfAlarms[index].active == 1 ? const Color.fromARGB(255, 0, 75, 150) : const Color.fromARGB(255, 72, 112, 143),  
+                          color: listOfAlarms[alarmIndex].active == 1
+                              ? const Color.fromARGB(255, 0, 75, 150)
+                              : const Color.fromARGB(255, 67, 118, 156),
                           child: ListTile(
-
                             title: Text(
-                              listOfAlarms[index].name,
-                              style: TextStyle(
-                                color: Colors.white,
-                              ),
+                              listOfAlarms[alarmIndex].name,
+                              style: TextStyle(color: Colors.white),
                             ),
 
                             subtitle: Text(
-                              listOfNumberOfHoursByAlarm.length == listOfAlarms.length && listOfNumberOfDaysByAlarm.length == listOfAlarms.length
-                                  ? '${listOfNumberOfHoursByAlarm[index]} horário(s) e ${listOfNumberOfDaysByAlarm[index]} dia(s) da semana'
+                              listOfNumberOfHoursByAlarm.length == listOfAlarms.length &&
+                                      listOfNumberOfDaysByAlarm.length == listOfAlarms.length
+                                  ? '${listOfNumberOfHoursByAlarm[alarmIndex]} horário(s) e ${listOfNumberOfDaysByAlarm[alarmIndex]} dia(s) da semana'
                                   : 'Carregando...',
                               style: TextStyle(color: Colors.white),
                             ),
 
                             trailing: Icon(
-                              listOfAlarms[index].active == 1 ? Icons.check_circle_outlined : Icons.cancel_outlined,
+                              listOfAlarms[alarmIndex].active == 1
+                                  ? Icons.check_circle_outlined
+                                  : Icons.cancel_outlined,
                               color: Colors.white,
                             ),
 
-                            // Go to the alarm details screen.
                             onTap: () {
-                              Navigator.pushNamed(context, Routes.detailAlarm, arguments: listOfAlarms[index])
-                              .then((value) async {
+                              Navigator.pushNamed(context, Routes.detailAlarm,
+                                      arguments: listOfAlarms[alarmIndex])
+                                  .then((value) async {
                                 await loadAlarms();
                                 await loadNumberOfHoursByAlarm();
                                 await loadNumberOfDaysByAlarm();
+                                await findNextAlarm();
                                 if (mounted) setState(() {});
                               });
                             },
-                            
-                            // Activates or deactivates the alarm.
-                            onLongPress: () {
-                              if (listOfAlarms[index].active == 1) {
-                                listOfAlarms[index].active = 0;
+
+                            onLongPress: () async {
+                              if (listOfAlarms[alarmIndex].active == 1) {
+                                listOfAlarms[alarmIndex].active = 0;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Alarme desativado.'),
@@ -235,7 +384,7 @@ class _AlarmViewState extends State<AlarmView> {
                                   ),
                                 );
                               } else {
-                                listOfAlarms[index].active = 1;
+                                listOfAlarms[alarmIndex].active = 1;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Alarme ativado.'),
@@ -244,21 +393,19 @@ class _AlarmViewState extends State<AlarmView> {
                                 );
                               }
 
-                              repository.updateAlarm(listOfAlarms[index]);
-                              setState(() {});
-                            }, 
-
+                              repository.updateAlarm(listOfAlarms[alarmIndex]);
+                              await findNextAlarm();
+                              if (mounted) setState(() {});
+                            },
                           ),
                         ),
                       );
                     },
-                    separatorBuilder: (BuildContext context, int index) => const Divider(),
                   ),
                 ),
               ]
           ),
         ),
-      
       ),
       
 
@@ -274,6 +421,7 @@ class _AlarmViewState extends State<AlarmView> {
                 await loadAlarms();
                 await loadNumberOfHoursByAlarm();
                 await loadNumberOfDaysByAlarm();
+                await findNextAlarm();
                 if (mounted) setState(() {});
               }
             }
