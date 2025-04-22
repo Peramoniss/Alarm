@@ -1,6 +1,6 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/repository.dart';
+import '../Models/alarm.dart';
+import '../Models/hour.dart';
+import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 
 
@@ -123,7 +123,7 @@ class _AddHourViewState extends State<AddHourView> {
                 ElevatedButton(
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      Hour(time: _timeController.text, alarmId: parametros.id);
+                      Hour(time: _timeController.text, alarmId: alarm.id!);
                       if (isEdit == true) {
                         editingHour!.time = _timeController.text;
                         repository.updateHour(editingHour!);

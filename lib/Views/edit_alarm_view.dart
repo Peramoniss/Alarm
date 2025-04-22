@@ -1,7 +1,7 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/day.dart';
-import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/repository.dart';
+import '../Models/alarm.dart';
+import '../Models/day.dart';
+import '../Models/hour.dart';
+import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 

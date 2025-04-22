@@ -1,7 +1,7 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/day.dart';
-import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/database.dart';
+import '../Models/alarm.dart';
+import '../Models/day.dart';
+import '../Models/hour.dart';
+import '../Services/database.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +91,10 @@ class Repository {
     return await _database.insertDay(row);
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
+  Future<void> updateDay(Day day) async {
+    return await _database.editDay(day);
+  }
   /////////////////////////////////////////////////////////////////////////////////////////
   
   Future<int> deleteDay(int dayId) async { 

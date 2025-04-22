@@ -1,19 +1,21 @@
 class Day {
   int? id;
   String week_day;
-  int today = 0;
+  int? today = 0;
   int alarmId;
   
   Day({
     this.id,
     required this.week_day,
-    required this.alarmId
+    required this.alarmId,
+    this.today
   });
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
-      'day': week_day
+      'today': today,
+      'week_day': week_day
     };
   }
 

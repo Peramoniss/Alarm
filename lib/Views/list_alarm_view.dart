@@ -1,7 +1,7 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/day.dart';
-import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/repository.dart';
+import '../Models/alarm.dart';
+import '../Models/day.dart';
+import '../Models/hour.dart';
+import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../Models/routes.dart';
@@ -155,8 +155,8 @@ class _AlarmViewState extends State<AlarmView> {
   Future<String> _formatNextAlarmText(Alarm alarm, DateTime now) async {
     List<Day> days = await repository.getAllDaysFromAlarm(alarm.id!);
     List<Hour> hours = await repository.getAllHoursFromAlarm(alarm.id!);
-    Day nextDay = days.firstWhere((d) => d.week_day == alarm.getProximoDia(days));
-    Hour nextHour = hours.firstWhere((h) => h.time == alarm.getClosestHour(hours));
+    Day nextDay = days.where((d) => d.week_day == alarm.getProximoDia(days)).first;
+    Hour nextHour = hours.where((h) => h.time == alarm.getClosestHour(hours)).first;
     DateFormat timeFormat = DateFormat('hh:mm');
     DateTime parsedTime = timeFormat.parse(nextHour.time);
     DateTime nextAlarmTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);

@@ -1,7 +1,7 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/day.dart';
-import 'package:despertador/Models/hour.dart';
-import 'package:despertador/Services/repository.dart';
+import '../Models/alarm.dart';
+import '../Models/day.dart';
+import '../Models/hour.dart';
+import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 
@@ -34,18 +34,58 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
   void loadHours(int id) async {
     hours = await repository.getAllHoursFromAlarm(id);
     days = await repository.getAllDaysFromAlarm(id);
-    nextOccurrenceText = getNextAlarmOccurrence(days, hours);
+    nextOccurrenceText = await getNextAlarmOccurrence(days, hours);
+    days = await repository.getAllDaysFromAlarm(id);
+    for (var day in days){
+      print(day.toMap());
+      }
     if (mounted) setState(() {});
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
   
-  String getNextAlarmOccurrence(List<Day> days, List<Hour> hours) {
+  
+  ///
+
+  int switchWeekday(Day day){
+    int weekday;
+    switch (day.week_day.toLowerCase()) {
+      case 'segunda':
+        weekday = 1;
+        break;
+      case 'terca':
+        weekday = 2;
+        break;
+      case 'quarta':
+        weekday = 3;
+        break;
+      case 'quinta':
+        weekday = 4;
+        break;
+      case 'sexta':
+        weekday = 5;
+        break;
+      case 'sabado':
+        weekday = 6;
+        break;
+      case 'domingo':
+        weekday = 7;
+        break;
+      default:
+        weekday = 1;
+        break;
+    }
+
+    return weekday;
+  }
+  
+  Future<String> getNextAlarmOccurrence(List<Day> days, List<Hour> hours) async {
     if (alarm == null || alarm!.active == 0) return "Desativado";
     if (days.isEmpty || hours.isEmpty) return "Sem horários ou dias";
 
     DateTime now = DateTime.now();
     List<DateTime> futureOccurrences = [];
+    int today = now.weekday;
 
     for (var day in days) {
       for (var hour in hours) {
@@ -54,36 +94,9 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
         int minutePart = int.parse(parts[1].split(' ')[0]);
         int weekday;
 
-        switch (day.week_day.toLowerCase()) {
-          case 'segunda':
-            weekday = 2;
-            break;
-          case 'terca':
-            weekday = 3;
-            break;
-          case 'quarta':
-            weekday = 4;
-            break;
-          case 'quinta':
-            weekday = 5;
-            break;
-          case 'sexta':
-            weekday = 6;
-            break;
-          case 'sabado':
-            weekday = 7;
-            break;
-          case 'domingo':
-            weekday = 8;
-            break;
-          default:
-            weekday = 2;
-            break;
-        }
+        weekday = switchWeekday(day);
 
-        int today = now.weekday;
-        int flutterWeekDay = weekday == 1 ? 7 : weekday - 1;
-        int dayDiff = ((flutterWeekDay - today + 7) % 7).toInt();
+        int dayDiff = ((weekday - today + 7) % 7).toInt();
 
         DateTime candidate = now.add(Duration(days: dayDiff));
         candidate = DateTime(candidate.year, candidate.month, candidate.day, hourPart, minutePart);
@@ -101,6 +114,14 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
 
     String weekDayText = Repository().weekDays[next.weekday - 1];
     String hourText = '${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}';
+
+    for (var day in days){
+      int weekday = switchWeekday(day);
+      int dayDiff = ((weekday - today + 7) % 7).toInt();
+      
+      day.today = dayDiff == 0 ? 1 : 0;
+      await Repository().updateDay(day);
+    }
 
     return "$weekDayText, $hourText";
   }
@@ -441,9 +462,9 @@ class _DetailAlarmViewState extends State<DetailAlarmView> {
                                   style: TextStyle(fontSize: 16, color: Colors.black),
                                 ),
 
-                                subtitle: Text(day.today == 1
-                                  ? 'Toca hoje'
-                                  : 'Não toca hoje',
+                                subtitle: Text(day.today == 0
+                                  ? 'Não toca hoje'
+                                  : 'Toca hoje',
                                   style: TextStyle(color: Colors.black),
                                 ),
 
