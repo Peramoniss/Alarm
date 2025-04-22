@@ -30,6 +30,7 @@ class _AddHourViewState extends State<AddHourView> {
   bool _initialized = false;
   Hour? editingHour;
   
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> _selectTime(BuildContext context) async {
     TimeOfDay? selectedTime = await showTimePicker(
@@ -44,6 +45,7 @@ class _AddHourViewState extends State<AddHourView> {
     }
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
   
   @override
   void didChangeDependencies(){
@@ -63,6 +65,7 @@ class _AddHourViewState extends State<AddHourView> {
     } 
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
   Widget build(BuildContext context) {
