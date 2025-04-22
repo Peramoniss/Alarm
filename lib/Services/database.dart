@@ -1,6 +1,6 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Models/day.dart';
-import 'package:despertador/Models/hour.dart';
+import '../Models/alarm.dart';
+import '../Models/day.dart';
+import '../Models/hour.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -122,8 +122,6 @@ class DatabaseHelper {
   Future<int> deleteAlarm(int id) async { 
     await startDatabase();
     //aparentemente o cascade já deleta tudo, então isso seria desnecessário, só a deleção do retorno deveria funcionar
-    //await _bancoDeDados.delete(hourTable, where: '$columnAlarmId = ?', whereArgs: [id]);
-    //TODO: DELETAR TODOS DA DAYTABLE -> _bancoDeDados.delete(dayTable, where: '$columnAlarmId = ?', whereArgs: [id]);
     return _bancoDeDados.delete(alarmTable, where: '$columnId = ?', whereArgs: [id]);
   }
 
@@ -218,8 +216,9 @@ class DatabaseHelper {
       for (final {
             columnId: pId as int,
             columnWeekDay: pWeekDay as String,
+            columnToday: pToday as int
           } in days)
-        Day(id: pId, week_day: pWeekDay, alarmId: id),
+        Day(id: pId, week_day: pWeekDay, alarmId: id, today: pToday),
     ];
   }
 
@@ -246,6 +245,19 @@ class DatabaseHelper {
       alarm.toMap(),
       where: 'id = ?',
       whereArgs: [alarm.id],
+    );
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<void> editDay(Day day) async {
+    await startDatabase();
+
+    await _bancoDeDados.update(
+      dayTable,
+      day.toMap(),
+      where: 'id = ?',
+      whereArgs: [day.id],
     );
   }
 }

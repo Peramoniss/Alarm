@@ -1,5 +1,5 @@
-import 'package:despertador/Models/alarm.dart';
-import 'package:despertador/Services/repository.dart';
+import '../Models/alarm.dart';
+import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 
 

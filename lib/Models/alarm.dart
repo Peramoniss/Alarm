@@ -1,5 +1,5 @@
-import 'package:despertador/Models/day.dart';
-import 'package:despertador/Models/hour.dart';
+import '../Models/day.dart';
+import '../Models/hour.dart';
 import 'package:flutter/material.dart';
 
 class Alarm {
@@ -15,7 +15,7 @@ class Alarm {
 
   String getProximoDia(List<Day> days) {
     final diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-    final hojeIndex = DateTime.now().weekday % 7;
+    final hojeIndex = (DateTime.now().weekday + 6) % 7;
 
     List<int> diasSelecionadosIndex = days.map((d) => diasSemana.indexOf(d.week_day)).toList();
 
@@ -24,7 +24,7 @@ class Alarm {
 
     for (int dia in diasSelecionadosIndex) {
       int diferenca = (dia - hojeIndex + 7) % 7;
-      if (diferenca == 0) diferenca = 7;
+      // if (diferenca == 0) diferenca = 7;
 
       if (diferenca < menorDiferenca) {
         menorDiferenca = diferenca;
