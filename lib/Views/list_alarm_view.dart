@@ -3,7 +3,6 @@ import '../Models/day.dart';
 import '../Models/hour.dart';
 import '../Services/repository.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../Models/routes.dart';
 
 
@@ -138,32 +137,93 @@ class _AlarmViewState extends State<AlarmView> {
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
-  DateTime _getNextAlarmDateTime(DateTime now, int dayIndex, TimeOfDay alarmTime) {
-    DateTime nextAlarmDateTime = DateTime(now.year, now.month, now.day, alarmTime.hour, alarmTime.minute);
-  
-    if (nextAlarmDateTime.weekday < dayIndex) {
-      nextAlarmDateTime = nextAlarmDateTime.add(Duration(days: dayIndex - nextAlarmDateTime.weekday));
-    } else if (nextAlarmDateTime.weekday > dayIndex) {
-      nextAlarmDateTime = nextAlarmDateTime.add(Duration(days: 7 - nextAlarmDateTime.weekday + dayIndex));
+  DateTime _getNextAlarmDateTime(DateTime now, int targetWeekdayIndex, TimeOfDay alarmTime) {
+    // Quantos dias faltam até o próximo dia desejado
+    int daysUntilNext = (targetWeekdayIndex - now.weekday + 7) % 7;
+
+    // Data base no dia correto
+    DateTime candidateDate = now.add(Duration(days: daysUntilNext));
+
+    // Cria DateTime com o horário do alarme
+    DateTime alarmDateTime = DateTime(
+      candidateDate.year,
+      candidateDate.month,
+      candidateDate.day,
+      alarmTime.hour,
+      alarmTime.minute,
+    );
+
+    // Se for hoje e o horário já passou, pula para a próxima semana
+    if (daysUntilNext == 0 && alarmDateTime.isBefore(now)) {
+      alarmDateTime = alarmDateTime.add(Duration(days: 1));
     }
 
-    return nextAlarmDateTime;
+    return alarmDateTime;
   }
+
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
   Future<String> _formatNextAlarmText(Alarm alarm, DateTime now) async {
     List<Day> days = await repository.getAllDaysFromAlarm(alarm.id!);
     List<Hour> hours = await repository.getAllHoursFromAlarm(alarm.id!);
-    Day nextDay = days.where((d) => d.week_day == alarm.getProximoDia(days)).first;
-    Hour nextHour = hours.where((h) => h.time == alarm.getClosestHour(hours)).first;
-    DateFormat timeFormat = DateFormat('hh:mm');
-    DateTime parsedTime = timeFormat.parse(nextHour.time);
-    DateTime nextAlarmTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);
-    String formattedTime = DateFormat('HH:mm').format(nextAlarmTime);
-    nextAlarmDayText = Repository().getWeekDay(nextDay.week_day).toLowerCase();
-    nextAlarmHourText = formattedTime;
-    return '${Repository().getWeekDay(nextDay.week_day)}, $formattedTime';
+
+    if (alarm.active == 0 || days.isEmpty || hours.isEmpty) {
+      return "Desativado";
+    }
+
+    List<DateTime> futureOccurrences = [];
+
+    for (var day in days) {
+      for (var hour in hours) {
+        List<String> parts = hour.time.split(':');
+        int hourPart = int.parse(parts[0]);
+        int minutePart = int.parse(parts[1].split(' ')[0]);
+
+        int weekday = _getDayIndex(day.week_day); // já usa seu método existente
+        int today = now.weekday;
+        int dayDiff = ((weekday - today + 7) % 7);
+
+        DateTime candidateDate = now.add(Duration(days: dayDiff));
+        DateTime candidate = DateTime(
+          candidateDate.year,
+          candidateDate.month,
+          candidateDate.day,
+          hourPart,
+          minutePart,
+        );
+
+        if (candidate.isBefore(now)) {
+          candidate = candidate.add(Duration(days: 7));
+        }
+
+        futureOccurrences.add(candidate);
+      }
+    }
+
+    futureOccurrences.sort();
+    DateTime next = futureOccurrences.first;
+
+    // Atualiza textos formatados que são usados na interface
+    nextAlarmDayText = Repository().getWeekDay(_getWeekdayName(next.weekday)).toLowerCase();
+    nextAlarmHourText = '${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}';
+
+    return '${Repository().getWeekDay(_getWeekdayName(next.weekday))}, $nextAlarmHourText';
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  String _getWeekdayName(int weekdayNumber) {
+    const map = {
+      1: 'segunda',
+      2: 'terca',
+      3: 'quarta',
+      4: 'quinta',
+      5: 'sexta',
+      6: 'sabado',
+      7: 'domingo',
+    };
+    return map[weekdayNumber] ?? 'segunda';
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
