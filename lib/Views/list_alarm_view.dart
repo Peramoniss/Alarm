@@ -1,9 +1,12 @@
+import 'package:flutter/services.dart';
+
 import '../Models/alarm.dart';
 import '../Models/day.dart';
 import '../Models/hour.dart';
 import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
+import 'package:local_auth/local_auth.dart';
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -17,6 +20,11 @@ class AlarmView extends StatefulWidget{
   State<AlarmView> createState() => _AlarmViewState();
 }
 
+enum _SupportState {
+  unknown,
+  supported,
+  unsupported,
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CLASS                                                                                 //
@@ -32,6 +40,15 @@ class _AlarmViewState extends State<AlarmView> {
   late String nextAlarmHourText;
   bool _allAlarmsDisabled = true;
 
+  /////////////////////////////////////////////////////////////////////////////////////////
+  //AUTH
+  
+  final LocalAuthentication auth = LocalAuthentication();
+  _SupportState _supportState = _SupportState.unknown;
+  bool? _canCheckBiometrics;
+  List<BiometricType>? _availableBiometrics;
+  String _authorized = 'Sem permissão';
+  bool _isAuthenticating = false;
   /////////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> loadAlarms() async {
@@ -294,10 +311,58 @@ class _AlarmViewState extends State<AlarmView> {
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
+  Future<void> _authenticateWithBiometrics() async {
+    bool authenticated = false;
+    try {
+      setState(() {
+        _isAuthenticating = true;
+        _authorized = 'Autenticando';
+      });
+      authenticated = await auth.authenticate(
+        localizedReason: 'Olá, por favor autentique',
+        options: const AuthenticationOptions(
+          stickyAuth: true, //Cenário que solicitou a autenticacao, app saiu de cena e voltou depois: Se true = continua pedindo a autenticação. 
+          biometricOnly: true, //Remove a opção de usar o PIN
+        ),
+      );
+      setState(() {
+        _isAuthenticating = false;
+        _authorized = 'Autenticando';
+      });
+    } on PlatformException catch (e) {
+      print(e);
+      setState(() {
+        _isAuthenticating = false;
+        _authorized = 'Erro: ${e.message}';
+      });
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    final String message = authenticated ? 'Autorizado' : 'Não Autorizado';
+    setState(() {
+      _authorized = message;
+    });
+  }
+
+  Future<void> _cancelAuthentication() async {
+    await auth.stopAuthentication();
+    setState(() => _isAuthenticating = false);
+  }
+  /////////////////////////////////////////////////////////////////////////////////////////
+
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _authenticateWithBiometrics();
+    auth.isDeviceSupported().then(
+      (bool isSupported) => setState(() => _supportState = isSupported
+          ? _SupportState.supported
+          : _SupportState.unsupported),
+    );
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
