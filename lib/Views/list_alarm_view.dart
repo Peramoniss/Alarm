@@ -49,6 +49,7 @@ class _AlarmViewState extends State<AlarmView> {
   List<BiometricType>? _availableBiometrics;
   String _authorized = 'Sem permissão';
   bool _isAuthenticating = false;
+  
   /////////////////////////////////////////////////////////////////////////////////////////
 
   Future<void> loadAlarms() async {
@@ -356,7 +357,9 @@ class _AlarmViewState extends State<AlarmView> {
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _initializeData().then((_) {
+      _authenticateWithBiometrics();
+    });
     _authenticateWithBiometrics();
     auth.isDeviceSupported().then(
       (bool isSupported) => setState(() => _supportState = isSupported
@@ -365,10 +368,211 @@ class _AlarmViewState extends State<AlarmView> {
     );
   }
 
-  /////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////
   
   @override
   Widget build(BuildContext context) {
+    /////////////////////////////////////////////////////////////////////////////////////////
+    // AUTHORIZED SCAFFOLD                                                                 //
+    /////////////////////////////////////////////////////////////////////////////////////////
+
+    if (_authorized == 'Autorizado'){
+      return Scaffold(
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        // APP BAR                                                                         //
+        /////////////////////////////////////////////////////////////////////////////////////
+        
+        appBar: AppBar(
+          title: Text('Alarmes'),
+          actions: [
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'helpButton') {
+                  _showHelpInfo(context);
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem<String>(
+                  value: 'helpButton',
+                  child: Text('Ajuda'),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        // BODY                                                                            //
+        /////////////////////////////////////////////////////////////////////////////////////
+        
+        body: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Center(
+            child: Column(
+              children: listOfAlarms.isEmpty
+                ? // If the alarm list is empty /////////////////////////////////////////////
+                
+                [
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.alarm_outlined, size: 50, color: Colors.grey),
+                          SizedBox(height: 10),
+                          Text(
+                            "Nenhum alarme adicionado!",
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                ]
+
+                : // If the alarm list is not empty /////////////////////////////////////////
+
+                [
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: listOfAlarms.length + 1, // +1 for the text.
+                      
+                      separatorBuilder: (context, index) {
+                        if (index == 0) {
+                          return SizedBox.shrink();
+                        }
+                        return const Divider();
+                      },
+
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+                            child: Column(
+                              children: [
+                                Text(
+                                  _allAlarmsDisabled
+                                      ? nextAlarmText
+                                      : 'Próximo alarme ${_getDayPrefix(nextAlarmDayText)} \n'
+                                        '$nextAlarmDayText ${_getHourPrefix(nextAlarmHourText)} $nextAlarmHourText',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 24),
+                                ),
+                                SizedBox(height: 10),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final alarmIndex = index - 1;
+
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            color: listOfAlarms[alarmIndex].active == 1
+                                ? const Color.fromARGB(255, 0, 75, 150)
+                                : const Color.fromARGB(255, 67, 118, 156),
+                            child: ListTile(
+                              title: Text(
+                                listOfAlarms[alarmIndex].name,
+                                style: TextStyle(color: Colors.white),
+                              ),
+
+                              subtitle: Text(
+                                listOfNumberOfHoursByAlarm.length == listOfAlarms.length &&
+                                        listOfNumberOfDaysByAlarm.length == listOfAlarms.length
+                                    ? '${listOfNumberOfHoursByAlarm[alarmIndex]} horário(s) e ${listOfNumberOfDaysByAlarm[alarmIndex]} dia(s) da semana'
+                                    : 'Carregando...',
+                                style: TextStyle(color: Colors.white),
+                              ),
+
+                              trailing: Icon(
+                                listOfAlarms[alarmIndex].active == 1
+                                    ? Icons.check_circle_outlined
+                                    : Icons.cancel_outlined,
+                                color: Colors.white,
+                              ),
+
+                              onTap: () {
+                                Navigator.pushNamed(context, Routes.detailAlarm,
+                                        arguments: listOfAlarms[alarmIndex])
+                                    .then((value) async {
+                                  await loadAlarms();
+                                  await loadNumberOfHoursByAlarm();
+                                  await loadNumberOfDaysByAlarm();
+                                  await findNextAlarm();
+                                  if (mounted) setState(() {});
+                                });
+                              },
+
+                              onLongPress: () async {
+                                if (listOfAlarms[alarmIndex].active == 1) {
+                                  listOfAlarms[alarmIndex].active = 0;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Alarme desativado.'),
+                                      duration: Duration(milliseconds: 1500),
+                                    ),
+                                  );
+                                } else {
+                                  listOfAlarms[alarmIndex].active = 1;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Alarme ativado.'),
+                                      duration: Duration(milliseconds: 1500),
+                                    ),
+                                  );
+                                }
+
+                                repository.updateAlarm(listOfAlarms[alarmIndex]);
+                                await findNextAlarm();
+                                if (mounted) setState(() {});
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ]
+            ),
+          ),
+        ),
+        
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        // FLOATING ACTION BUTTON                                                          //
+        /////////////////////////////////////////////////////////////////////////////////////
+        
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarmObject': null, 'editMode': false})
+              .then((value) async {
+                if (value == true) {
+                  await loadAlarms();
+                  await loadNumberOfHoursByAlarm();
+                  await loadNumberOfDaysByAlarm();
+                  await findNextAlarm();
+                  if (mounted) setState(() {});
+                }
+              }
+            );
+          },
+          child: Icon(Icons.add),
+        ),
+        
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      );
+    }
+
+
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    // UNAUTHORIZED SCAFFOLD                                                               //
+    /////////////////////////////////////////////////////////////////////////////////////////
+
     return Scaffold(
 
       /////////////////////////////////////////////////////////////////////////////////////
@@ -402,160 +606,44 @@ class _AlarmViewState extends State<AlarmView> {
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Center(
-          child: Column(
-            children: listOfAlarms.isEmpty
-              ? // If the alarm list is empty /////////////////////////////////////////////
-              
-              [
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.alarm_outlined, size: 50, color: Colors.grey),
-                        SizedBox(height: 10),
-                        Text(
-                          "Nenhum alarme adicionado!",
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              ]
-
-              : // If the alarm list is not empty /////////////////////////////////////////
-
-              [
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: listOfAlarms.length + 1, // +1 for the text.
+          child:
+            Expanded(
+              child: Center(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.gpp_bad_outlined, size: 50, color: Colors.grey),
+                    SizedBox(height: 10),
                     
-                    separatorBuilder: (context, index) {
-                      if (index == 0) {
-                        return SizedBox.shrink();
-                      }
-                      return const Divider();
-                    },
+                    Center(
+                      child: Text(
+                      "Acesso ainda não autorizado!",
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    )),
 
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                _allAlarmsDisabled
-                                    ? nextAlarmText
-                                    : 'Próximo alarme ${_getDayPrefix(nextAlarmDayText)} \n'
-                                      '$nextAlarmDayText ${_getHourPrefix(nextAlarmHourText)} $nextAlarmHourText',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 24),
-                              ),
-                              SizedBox(height: 10),
-                            ],
-                          ),
-                        );
-                      }
+                    SizedBox(height: 20),
 
-                      final alarmIndex = index - 1;
+                    ElevatedButton(
+                      onPressed: () async {
+                        _authenticateWithBiometrics();
+                      },
 
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          color: listOfAlarms[alarmIndex].active == 1
-                              ? const Color.fromARGB(255, 0, 75, 150)
-                              : const Color.fromARGB(255, 67, 118, 156),
-                          child: ListTile(
-                            title: Text(
-                              listOfAlarms[alarmIndex].name,
-                              style: TextStyle(color: Colors.white),
-                            ),
-
-                            subtitle: Text(
-                              listOfNumberOfHoursByAlarm.length == listOfAlarms.length &&
-                                      listOfNumberOfDaysByAlarm.length == listOfAlarms.length
-                                  ? '${listOfNumberOfHoursByAlarm[alarmIndex]} horário(s) e ${listOfNumberOfDaysByAlarm[alarmIndex]} dia(s) da semana'
-                                  : 'Carregando...',
-                              style: TextStyle(color: Colors.white),
-                            ),
-
-                            trailing: Icon(
-                              listOfAlarms[alarmIndex].active == 1
-                                  ? Icons.check_circle_outlined
-                                  : Icons.cancel_outlined,
-                              color: Colors.white,
-                            ),
-
-                            onTap: () {
-                              Navigator.pushNamed(context, Routes.detailAlarm,
-                                      arguments: listOfAlarms[alarmIndex])
-                                  .then((value) async {
-                                await loadAlarms();
-                                await loadNumberOfHoursByAlarm();
-                                await loadNumberOfDaysByAlarm();
-                                await findNextAlarm();
-                                if (mounted) setState(() {});
-                              });
-                            },
-
-                            onLongPress: () async {
-                              if (listOfAlarms[alarmIndex].active == 1) {
-                                listOfAlarms[alarmIndex].active = 0;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Alarme desativado.'),
-                                    duration: Duration(milliseconds: 1500),
-                                  ),
-                                );
-                              } else {
-                                listOfAlarms[alarmIndex].active = 1;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Alarme ativado.'),
-                                    duration: Duration(milliseconds: 1500),
-                                  ),
-                                );
-                              }
-
-                              repository.updateAlarm(listOfAlarms[alarmIndex]);
-                              await findNextAlarm();
-                              if (mounted) setState(() {});
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                      child: Text(
+                        'Autenticar novamente',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
-              ]
-          ),
-        ),
-      ),
-      
+              ),
 
-      /////////////////////////////////////////////////////////////////////////////////////
-      // FLOATING ACTION BUTTON                                                          //
-      /////////////////////////////////////////////////////////////////////////////////////
-      
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, Routes.addAlarm, arguments: {'alarmObject': null, 'editMode': false})
-            .then((value) async {
-              if (value == true) {
-                await loadAlarms();
-                await loadNumberOfHoursByAlarm();
-                await loadNumberOfDaysByAlarm();
-                await findNextAlarm();
-                if (mounted) setState(() {});
-              }
-            }
-          );
-        },
-        child: Icon(Icons.add),
-      ),
-      
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+              
+            )
+        )
+      )
+
     );
   }
 }
