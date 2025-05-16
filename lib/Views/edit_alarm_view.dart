@@ -5,6 +5,10 @@ import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:math';
+import '../Services/random_name_service.dart';
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CLASS                                                                                 //
@@ -32,6 +36,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
   final TextEditingController _nameController = TextEditingController();
   late Alarm alarm;
   var parameters;
+  bool isLoading = false;
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -100,7 +105,9 @@ class _EditAlarmViewState extends State<EditAlarmView> {
           padding: const EdgeInsets.all(20.0),
           child: Form(
             key: _formKey,
-            child: Column(
+            child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
 
@@ -451,6 +458,65 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+                    ElevatedButton(
+                      onPressed: () async {
+                        setState(() {
+                          isLoading = true;
+                        });
+                        _nameController.text = await RandomNameService.fetchRandomName();
+  
+                        String temp_text = await RandomNameService.fetchRandomName();
+                        alarm.active = temp_text.codeUnitAt(0)%2;
+                        
+
+                        for (int i = 0; i < 2; i ++){
+                          temp_text = await RandomNameService.fetchRandomName();
+
+                          int index = temp_text.codeUnitAt(0) % 7;
+                          if (!days.any((d) => d.week_day == allDays[index]))
+                          {
+                            Map<String, dynamic> row = {
+                              Repository.columnWeekDay: allDays[index],
+                              Repository.columnToday: 0,
+                              Repository.columnAlarmId: alarm.id,
+                            };
+                            await repository.insertDay(row);
+                          }
+                          setState(() {});
+                        }
+
+                        for (int i = 0; i < 2; i ++){
+                          temp_text = await RandomNameService.fetchRandomName();
+                          int hour = temp_text.codeUnitAt(0) % 24; 
+                          int minutes = (temp_text.codeUnitAt(0) + temp_text.codeUnitAt(1) + temp_text.codeUnitAt(2)) % 60;
+                          final String formattedTime = '${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+
+
+                          Map<String, dynamic> row = {
+                            Repository.columnTime: formattedTime,
+                            Repository.columnAnswered: 0,
+                            Repository.columnAlarmId: alarm.id,
+                          };
+
+                          await repository.insertHour(row);
+                          hours.add(Hour(alarmId: alarm.id!, time: formattedTime));
+                        }
+
+                        setState(() {
+                          isLoading = false;
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Dados gerados com sucesso!')),
+                        );
+                      },
+
+                      child: Text(
+                        'Gerar dados aleatórios',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    SizedBox(height: 20),
                     // Save changes button.
                     ElevatedButton(
                       onPressed: () async {
