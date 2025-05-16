@@ -7,6 +7,7 @@ import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:http/http.dart' as http;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
