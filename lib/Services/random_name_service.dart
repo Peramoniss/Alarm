@@ -21,7 +21,7 @@ class RandomNameService {
         result = data.isNotEmpty ? data[0] : "Gertrudes";
       }
     } catch (_) {
-      // Silencia o erro e mantém fallback
+      // Silencia o erro e mantém fallback.
     }
 
     return result;
