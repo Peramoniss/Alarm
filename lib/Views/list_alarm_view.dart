@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-
 import '../Models/alarm.dart';
 import '../Models/day.dart';
 import '../Models/hour.dart';
@@ -7,7 +6,19 @@ import '../Services/repository.dart';
 import 'package:flutter/material.dart';
 import '../Models/routes.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:http/http.dart' as http;
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// ENUM                                                                                  //
+///////////////////////////////////////////////////////////////////////////////////////////
+
+enum _SupportState {
+  unknown,
+  supported,
+  unsupported,
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -21,11 +32,7 @@ class AlarmView extends StatefulWidget{
   State<AlarmView> createState() => _AlarmViewState();
 }
 
-enum _SupportState {
-  unknown,
-  supported,
-  unsupported,
-}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CLASS                                                                                 //
@@ -36,20 +43,15 @@ class _AlarmViewState extends State<AlarmView> {
   List<Alarm> listOfAlarms = [];
   List<int> listOfNumberOfHoursByAlarm = [];
   List<int> listOfNumberOfDaysByAlarm = [];
+  String _authorized = 'Sem permissão';
   late String nextAlarmText;
   late String nextAlarmDayText;
   late String nextAlarmHourText;
-  bool _allAlarmsDisabled = true;
-
-  /////////////////////////////////////////////////////////////////////////////////////////
-  //AUTH
-  
   final LocalAuthentication auth = LocalAuthentication();
   _SupportState _supportState = _SupportState.unknown;
-  bool? _canCheckBiometrics;
-  List<BiometricType>? _availableBiometrics;
-  String _authorized = 'Sem permissão';
+  //bool? _canCheckBiometrics;
   bool _isAuthenticating = false;
+  bool _allAlarmsDisabled = true;
   
   /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -157,13 +159,9 @@ class _AlarmViewState extends State<AlarmView> {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   DateTime _getNextAlarmDateTime(DateTime now, int targetWeekdayIndex, TimeOfDay alarmTime) {
-    // Quantos dias faltam até o próximo dia desejado
     int daysUntilNext = (targetWeekdayIndex - now.weekday + 7) % 7;
-
-    // Data base no dia correto
     DateTime candidateDate = now.add(Duration(days: daysUntilNext));
 
-    // Cria DateTime com o horário do alarme
     DateTime alarmDateTime = DateTime(
       candidateDate.year,
       candidateDate.month,
@@ -172,7 +170,6 @@ class _AlarmViewState extends State<AlarmView> {
       alarmTime.minute,
     );
 
-    // Se for hoje e o horário já passou, pula para a próxima semana
     if (daysUntilNext == 0 && alarmDateTime.isBefore(now)) {
       alarmDateTime = alarmDateTime.add(Duration(days: 1));
     }
@@ -223,7 +220,6 @@ class _AlarmViewState extends State<AlarmView> {
     futureOccurrences.sort();
     DateTime next = futureOccurrences.first;
 
-    // Atualiza textos formatados que são usados na interface
     nextAlarmDayText = Repository().getWeekDay(_getWeekdayName(next.weekday)).toLowerCase();
     nextAlarmHourText = '${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}';
 
@@ -323,8 +319,8 @@ class _AlarmViewState extends State<AlarmView> {
       authenticated = await auth.authenticate(
         localizedReason: 'Olá, por favor autentique',
         options: const AuthenticationOptions(
-          stickyAuth: true, //Cenário que solicitou a autenticacao, app saiu de cena e voltou depois: Se true = continua pedindo a autenticação. 
-          biometricOnly: true, //Remove a opção de usar o PIN
+          stickyAuth: true,    // Cenário que solicitou a autenticacao, app saiu de cena e voltou depois: Se true = continua pedindo a autenticação. 
+          biometricOnly: true, // Remove a opção de usar o PIN.
         ),
       );
       setState(() {
@@ -332,7 +328,6 @@ class _AlarmViewState extends State<AlarmView> {
         _authorized = 'Autenticando';
       });
     } on PlatformException catch (e) {
-      print(e);
       setState(() {
         _isAuthenticating = false;
         _authorized = 'Erro: ${e.message}';
@@ -349,10 +344,6 @@ class _AlarmViewState extends State<AlarmView> {
     });
   }
 
-  Future<void> _cancelAuthentication() async {
-    await auth.stopAuthentication();
-    setState(() => _isAuthenticating = false);
-  }
   /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
