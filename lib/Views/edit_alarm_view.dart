@@ -7,6 +7,7 @@ import '../Services/random_name_service.dart';
 import 'package:flutter/material.dart';
 
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CLASS                                                                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -17,6 +18,7 @@ class EditAlarmView extends StatefulWidget {
   @override
   State<EditAlarmView> createState() => _EditAlarmViewState();
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -442,9 +444,17 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                                                         Repository.columnAlarmId: alarm.id,
                                                       };
                                                       await repository.insertDay(row);
+
+                                                      setState(() {
+                                                        editedDays.add(Day(
+                                                          alarmId: alarm.id!,
+                                                          week_day: dayToInsert,
+                                                          today: 0,
+                                                        ));
+                                                      });
+
                                                       Navigator.pop(context);
                                                     }
-                                                    setState(() {});
                                                   },
                                                 ),
                                               ),
@@ -518,9 +528,13 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                         });
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Dados gerados com sucesso!')),
+                          SnackBar(
+                            content: Text('Dados gerados com sucesso!'), 
+                            duration: Duration(milliseconds: 1500),
+                          ),
                         );
                       },
+
                       child: Text(
                         'Gerar dados aleatórios',
                         style: TextStyle(fontSize: 18),
@@ -575,7 +589,10 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                         });
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Edição realizada com sucesso!')),
+                          SnackBar(
+                            content: Text('Edição realizada com sucesso!'), 
+                            duration: Duration(milliseconds: 1500),
+                          ),
                         );
                       },
 

@@ -1,6 +1,8 @@
 import '../Models/alarm.dart';
 import '../Services/repository.dart';
+import '../Services/random_name_service.dart';
 import 'package:flutter/material.dart';
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -15,15 +17,21 @@ class AddAlarmView extends StatefulWidget {
 }
 
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CLASS                                                                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 class _AddAlarmViewState extends State<AddAlarmView> {
   Repository repository = Repository();
+  Alarm? editingAlarm;
   bool _alarmActivated = false;
+  bool _initialized = false;
+  bool _isLoadingName = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+  late bool isEdit;
+  var parametros; 
   
   /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -37,12 +45,7 @@ class _AddAlarmViewState extends State<AddAlarmView> {
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
-
-  bool _initialized = false;
-  Alarm? editingAlarm;
-  late bool isEdit;
-  var parametros; 
-
+  ///
   @override
   void didChangeDependencies(){
     super.didChangeDependencies();
@@ -101,12 +104,38 @@ class _AddAlarmViewState extends State<AddAlarmView> {
 
                 TextFormField(
                   controller: _nameController,
+                  enabled: !_isLoadingName,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
+                    suffixIcon: _isLoadingName
+                        ? Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(Icons.casino),
+                            tooltip: 'Gerar nome aleatório',
+                            onPressed: () async {
+                              setState(() {
+                                _isLoadingName = true;
+                              });
+
+                              final randomName = await RandomNameService.fetchRandomName();
+
+                              setState(() {
+                                _nameController.text = randomName;
+                                _isLoadingName = false;
+                              });
+                            },
+                          ),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Este campo é obrigatório';
+                      return 'Este campo é obrigatório.';
                     }
                     return null;
                   },
@@ -163,7 +192,10 @@ class _AddAlarmViewState extends State<AddAlarmView> {
                       }
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Alarme adicionado!')),
+                        SnackBar(
+                          content: Text('Alarme adicionado!'),
+                          duration: Duration(milliseconds: 1500),
+                        ),
                       );
 
                       Navigator.pop(context, true); // 'true' informs that the state has changed and must rebuild the screen.
