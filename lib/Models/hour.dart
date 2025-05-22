@@ -21,15 +21,21 @@ class Hour {
     };
   }
 
-  /*factory Hour.fromMap(Map<String, dynamic> map) {
+  factory Hour.fromMap(Map<String, dynamic> map) {
     return Hour(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      active: map['active'] as int,
+      id: map['id'],
+      time: map['time'],
+      answered: map['answered'],
+      alarmId: map['alarm_id'],
     );
   }
 
-  String toJson() => json.encode(toMap());
-
-  factory Hour.fromJson(String source) => Hour.fromMap(json.decode(source) as Map<String, dynamic>);*/
+  Hour copy() {
+    return Hour(
+      id: id,
+      time: time,
+      answered: answered,
+      alarmId: alarmId,
+    );
+  }
 }

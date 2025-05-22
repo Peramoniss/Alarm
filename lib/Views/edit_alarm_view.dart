@@ -2,13 +2,10 @@ import '../Models/alarm.dart';
 import '../Models/day.dart';
 import '../Models/hour.dart';
 import '../Services/repository.dart';
-import 'package:flutter/material.dart';
 import '../Models/routes.dart';
-
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:math';
 import '../Services/random_name_service.dart';
+import 'package:flutter/material.dart';
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CLASS                                                                                 //
@@ -31,12 +28,14 @@ class _EditAlarmViewState extends State<EditAlarmView> {
   List<String> selectedDays = [];
   List<Hour> hours = [];
   List<Day> days = [];
+  List<Hour> editedHours = [];
+  List<Day> editedDays = [];
   bool _initialized = false;
+  bool isLoading = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   late Alarm alarm;
   var parameters;
-  bool isLoading = false;
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -52,10 +51,17 @@ class _EditAlarmViewState extends State<EditAlarmView> {
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
-  void loadData(int id) async {
-    hours = await repository.getAllHoursFromAlarm(id);
-    days = await repository.getAllDaysFromAlarm(id);
-    if (mounted) setState(() {});
+  Future<void> loadData(int id) async {
+    final fetchedHours = await repository.getAllHoursFromAlarm(id);
+    final fetchedDays = await repository.getAllDaysFromAlarm(id);
+
+    setState(() {
+      hours = fetchedHours;
+      days = fetchedDays;
+
+      editedHours = fetchedHours.map((h) => h.copy()).toList();
+      editedDays = fetchedDays.map((d) => d.copy()).toList();
+    });
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
@@ -82,8 +88,24 @@ class _EditAlarmViewState extends State<EditAlarmView> {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)!.settings.arguments as Map?;
+      if (args != null && args['alarm'] != null) {
+        setState(() {
+          alarm = args['alarm'] as Alarm;
+        });
+        loadData(alarm.id!);
+      }
+    });
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  @override
   Widget build(BuildContext context) {
-    loadData(alarm.id!);
 
     return Scaffold(
 
@@ -184,7 +206,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      hours.isEmpty
+                      editedHours.isEmpty
 
                       ? 
                       
@@ -198,7 +220,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                       : 
                       
                       Column(
-                        children: hours.map((hour) {
+                        children: editedHours.map((hour) {
                           return Container(
                             margin: EdgeInsets.symmetric(vertical: 4),
                             decoration: BoxDecoration(
@@ -223,9 +245,8 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               trailing: IconButton(
                                 icon: Icon(Icons.delete, color: Colors.white),
                                 onPressed: () async {
-                                  await repository.deleteHour(hour.id!);
                                   setState(() {
-                                    hours.remove(hour);
+                                    editedHours.remove(hour);
                                   });
                                 },
                               ),
@@ -275,7 +296,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                             };
 
                             await repository.insertHour(row);
-                            hours.add(Hour(alarmId: alarm.id!, time: formattedTime));
+                            editedHours.add(Hour(alarmId: alarm.id!, time: formattedTime));
                             setState(() {});
                           }
                         },
@@ -316,7 +337,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      days.isEmpty
+                      editedDays.isEmpty
                       ? 
                       
                       Center(
@@ -329,7 +350,7 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                       : 
                       
                       Column(
-                        children: days.map((day) {
+                        children: editedDays.map((day) {
                           return Container(
                             margin: EdgeInsets.symmetric(vertical: 4),
                             decoration: BoxDecoration(
@@ -347,9 +368,8 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                               trailing: IconButton(
                                 icon: Icon(Icons.delete, color: Colors.white),
                                 onPressed: () async {
-                                  await repository.deleteDay(day.id!);
                                   setState(() {
-                                    days.remove(day);
+                                    editedDays.remove(day);
                                   });
                                 },
                               ),
@@ -408,14 +428,14 @@ class _EditAlarmViewState extends State<EditAlarmView> {
 
                                                 trailing: IconButton(
                                                   icon: Icon(
-                                                    days.any((d) => d.week_day == dayToInsert)
+                                                    editedDays.any((d) => d.week_day == dayToInsert)
                                                         ? Icons.check_circle
                                                         : Icons.add_circle,
                                                     color: const Color.fromARGB(255, 43, 43, 43),
                                                   ),
 
                                                   onPressed: () async {
-                                                    if (!days.any((d) => d.week_day == dayToInsert)) {
+                                                    if (!editedDays.any((d) => d.week_day == dayToInsert)) {
                                                       Map<String, dynamic> row = {
                                                         Repository.columnWeekDay: dayToInsert,
                                                         Repository.columnToday: 0,
@@ -458,48 +478,39 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+
+                    /// RANDOM DATA GENERATION BUTTON /////////////////////////////////////
+                    
                     ElevatedButton(
                       onPressed: () async {
                         setState(() {
                           isLoading = true;
                         });
+
                         _nameController.text = await RandomNameService.fetchRandomName();
-  
+
                         String temp_text = await RandomNameService.fetchRandomName();
-                        alarm.active = temp_text.codeUnitAt(0)%2;
-                        
+                        alarm.active = temp_text.codeUnitAt(0) % 2;
 
-                        for (int i = 0; i < 2; i ++){
+                        for (int i = 0; i < 2; i++) {
                           temp_text = await RandomNameService.fetchRandomName();
-
                           int index = temp_text.codeUnitAt(0) % 7;
-                          if (!days.any((d) => d.week_day == allDays[index]))
-                          {
-                            Map<String, dynamic> row = {
-                              Repository.columnWeekDay: allDays[index],
-                              Repository.columnToday: 0,
-                              Repository.columnAlarmId: alarm.id,
-                            };
-                            await repository.insertDay(row);
+                          String dayToAdd = allDays[index];
+
+                          if (!editedDays.any((d) => d.week_day == dayToAdd)) {
+                            editedDays.add(Day(alarmId: alarm.id!, week_day: dayToAdd, today: 0));
                           }
-                          setState(() {});
                         }
 
-                        for (int i = 0; i < 2; i ++){
+                        for (int i = 0; i < 2; i++) {
                           temp_text = await RandomNameService.fetchRandomName();
-                          int hour = temp_text.codeUnitAt(0) % 24; 
+                          int hour = temp_text.codeUnitAt(0) % 24;
                           int minutes = (temp_text.codeUnitAt(0) + temp_text.codeUnitAt(1) + temp_text.codeUnitAt(2)) % 60;
                           final String formattedTime = '${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
 
-
-                          Map<String, dynamic> row = {
-                            Repository.columnTime: formattedTime,
-                            Repository.columnAnswered: 0,
-                            Repository.columnAlarmId: alarm.id,
-                          };
-
-                          await repository.insertHour(row);
-                          hours.add(Hour(alarmId: alarm.id!, time: formattedTime));
+                          if (!editedHours.any((h) => h.time == formattedTime)) {
+                            editedHours.add(Hour(alarmId: alarm.id!, time: formattedTime, answered: 0));
+                          }
                         }
 
                         setState(() {
@@ -510,18 +521,58 @@ class _EditAlarmViewState extends State<EditAlarmView> {
                           SnackBar(content: Text('Dados gerados com sucesso!')),
                         );
                       },
-
                       child: Text(
                         'Gerar dados aleatórios',
                         style: TextStyle(fontSize: 18),
                       ),
                     ),
+
                     SizedBox(height: 20),
-                    // Save changes button.
+
+                    /// SAVE CHANGES BUTTON ///////////////////////////////////////////////
+
                     ElevatedButton(
                       onPressed: () async {
+                        setState(() {
+                        isLoading = true;
+                        });
+
                         alarm.name = _nameController.text;
-                        repository.updateAlarm(alarm);
+                        await repository.updateAlarm(alarm);
+
+                        final existingHours = await repository.getAllHoursFromAlarm(alarm.id!);
+
+                        for (final h in existingHours) {
+                          await repository.deleteHour(h.id!);
+                        }
+
+                        for (final h in editedHours) {
+                          Map<String, dynamic> row = {
+                            Repository.columnTime: h.time,
+                            Repository.columnAnswered: h.answered,
+                            Repository.columnAlarmId: alarm.id,
+                          };
+                          await repository.insertHour(row);
+                        }
+
+                        final existingDays = await repository.getAllDaysFromAlarm(alarm.id!);
+
+                        for (final d in existingDays) {
+                          await repository.deleteDay(d.id!);
+                        }
+
+                        for (final d in editedDays) {
+                          Map<String, dynamic> row = {
+                            Repository.columnWeekDay: d.week_day,
+                            Repository.columnToday: d.today ?? 0,
+                            Repository.columnAlarmId: alarm.id,
+                          };
+                          await repository.insertDay(row);
+                        }
+
+                        setState(() {
+                          isLoading = false;
+                        });
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Edição realizada com sucesso!')),
