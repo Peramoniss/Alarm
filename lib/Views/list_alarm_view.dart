@@ -1,10 +1,11 @@
-import 'package:flutter/services.dart';
+
 import '../Models/alarm.dart';
 import '../Models/day.dart';
 import '../Models/hour.dart';
 import '../Services/repository.dart';
-import 'package:flutter/material.dart';
 import '../Models/routes.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
 
@@ -13,11 +14,11 @@ import 'package:local_auth/local_auth.dart';
 // ENUM                                                                                  //
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-enum _SupportState {
+/*enum _SupportState {
   unknown,
   supported,
   unsupported,
-}
+}*/
 
 
 
@@ -48,9 +49,9 @@ class _AlarmViewState extends State<AlarmView> {
   late String nextAlarmDayText;
   late String nextAlarmHourText;
   final LocalAuthentication auth = LocalAuthentication();
-  _SupportState _supportState = _SupportState.unknown;
+  //_SupportState _supportState = _SupportState.unknown;
   //bool? _canCheckBiometrics;
-  bool _isAuthenticating = false;
+  //bool _isAuthenticating = false;
   bool _allAlarmsDisabled = true;
   
   /////////////////////////////////////////////////////////////////////////////////////////
@@ -313,23 +314,23 @@ class _AlarmViewState extends State<AlarmView> {
     bool authenticated = false;
     try {
       setState(() {
-        _isAuthenticating = true;
+        //_isAuthenticating = true;
         _authorized = 'Autenticando';
       });
       authenticated = await auth.authenticate(
-        localizedReason: 'Olá, por favor autentique',
+        localizedReason: 'Olá, por favor autentique.',
         options: const AuthenticationOptions(
           stickyAuth: true,    // Cenário que solicitou a autenticacao, app saiu de cena e voltou depois: Se true = continua pedindo a autenticação. 
           biometricOnly: true, // Remove a opção de usar o PIN.
         ),
       );
       setState(() {
-        _isAuthenticating = false;
+        //_isAuthenticating = false;
         _authorized = 'Autenticando';
       });
     } on PlatformException catch (e) {
       setState(() {
-        _isAuthenticating = false;
+        //_isAuthenticating = false;
         _authorized = 'Erro: ${e.message}';
       });
       return;
@@ -347,18 +348,26 @@ class _AlarmViewState extends State<AlarmView> {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
-  void initState() {
-    super.initState();
-    _initializeData().then((_) {
-      _authenticateWithBiometrics();
-    });
+void initState() {
+  super.initState();
+
+  _initializeData().then((_) {
     _authenticateWithBiometrics();
-    auth.isDeviceSupported().then(
-      (bool isSupported) => setState(() => _supportState = isSupported
-          ? _SupportState.supported
-          : _SupportState.unsupported),
-    );
-  }
+  });
+
+  _authenticateWithBiometrics();
+
+  // Check if the device supports biometrics.
+  /*auth.isDeviceSupported().then((bool isSupported) {
+    setState(() {
+      if (isSupported) {
+        _supportState = _SupportState.supported;
+      } else {
+        _supportState = _SupportState.unsupported;
+      }
+    });
+  });*/
+}
 
   ///////////////////////////////////////////////////////////////////////////////////////////
   
