@@ -44,7 +44,6 @@ class MyApp extends StatelessWidget {
 
       theme: ThemeData(
         scaffoldBackgroundColor: const Color.fromARGB(255, 231, 231, 231),
-        scaffoldBackgroundColor: const Color.fromARGB(255, 231, 231, 231),
 
         appBarTheme: AppBarTheme(
           backgroundColor: const Color.fromARGB(255, 255, 255, 255),
@@ -53,21 +52,9 @@ class MyApp extends StatelessWidget {
 
         floatingActionButtonTheme: FloatingActionButtonThemeData(
           backgroundColor: Color.fromARGB(255, 4, 102, 200),
-          backgroundColor: Color.fromARGB(255, 4, 102, 200),
           foregroundColor: Colors.white,
           shape: StadiumBorder(),
           elevation: 2,
-        ),
-
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color.fromARGB(255, 4, 102, 200),
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: 16.0), 
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(7.0),
-            ),
-          ),
         ),
 
         elevatedButtonTheme: ElevatedButtonThemeData(
