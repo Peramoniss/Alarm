@@ -6,5 +6,8 @@ class Routes {
   static const String editAlarm = '/editAlarm';
   static const String detailAlarm = '/detailAlarm';
   static const String addHour = '/addHour';
+  static const String viewAlarm = '/viewAlarm';
+  static const String notification = '/notificationScreen';
+  static const String resumonotif = '/notificationResume';
   static GlobalKey<NavigatorState> nav = GlobalKey<NavigatorState>();
 }
