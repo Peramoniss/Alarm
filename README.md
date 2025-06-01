@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # despertador
 
 A new Flutter project.
