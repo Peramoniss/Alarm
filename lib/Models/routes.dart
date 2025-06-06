@@ -9,5 +9,7 @@ class Routes {
   static const String viewAlarm = '/viewAlarm';
   static const String notification = '/notificationScreen';
   static const String resumonotif = '/notificationResume';
+  static const String backtest = '/backtest';
   static GlobalKey<NavigatorState> nav = GlobalKey<NavigatorState>();
+
 }

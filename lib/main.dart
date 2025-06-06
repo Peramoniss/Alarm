@@ -15,6 +15,8 @@ import 'package:flutter/material.dart';
 // import 'package:firebase_auth/firebase_auth.dart'
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:despertador/background/parte1_iso.dart';
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -39,7 +41,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Despertador',
-      initialRoute: Routes.home, //trocar para notification para testar depois
+      initialRoute: Routes.backtest, //trocar para notification, home, para testar depois
       navigatorKey: Routes.nav,
 
       theme: ThemeData(
@@ -74,11 +76,11 @@ class MyApp extends StatelessWidget {
         Routes.viewAlarm: (context) => AlarmView(),
         Routes.addAlarm: (context) => AddAlarmView(),
         Routes.editAlarm: (context) => EditAlarmView(),
-        Routes.editAlarm: (context) => EditAlarmView(),
         Routes.addHour: (context) => AddHourView(),
         Routes.detailAlarm: (context) => DetailAlarmView(),
         Routes.notification: (context) => MainNotification(),
         Routes.resumonotif: (context) => ResumoNotificacao(),
+        Routes.backtest: (context) => Parte1ComIsolate(),
       },
     );
   }
