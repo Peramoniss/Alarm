@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../Models/alarm.dart';
 import '../Models/day.dart';
@@ -7,6 +12,7 @@ import '../Models/routes.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:path_provider/path_provider.dart';
 
 
 
@@ -345,29 +351,163 @@ class _AlarmViewState extends State<AlarmView> {
     });
   }
 
+
+  Future<void> _fazerBackup(BuildContext context) async {
+  try {
+    // 1. Pega os dados
+    List<Map<String, dynamic>> alarms = await repository.getAllAlarmsJson();
+    String jsonBackup = jsonEncode(alarms);
+
+    // 2. Solicita o nome do arquivo ao usuário
+    String? fileName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        String tempName = '';
+        return AlertDialog(
+          title: const Text('Nome do arquivo de backup'),
+          content: TextField(
+            autofocus: true,
+            decoration: const InputDecoration(hintText: "Digite o nome do arquivo"),
+            onChanged: (value) {
+              tempName = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (tempName.trim().isEmpty) {
+                  // Não permite salvar vazio
+                  return;
+                }
+                Navigator.of(context).pop(tempName.trim());
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (fileName == null || fileName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Backup cancelado: nome inválido.")),
+      );
+      return;
+    }
+
+    // 3. Abre seletor de pasta
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+
+    // 4. Verifica se o usuário escolheu alguma pasta
+    if (selectedDirectory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Backup cancelado.")),
+      );
+      return;
+    }
+
+    // 5. Cria o arquivo com o nome informado
+    final file = File('$selectedDirectory/$fileName.json');
+    await file.writeAsString(jsonBackup);
+
+    // 6. Mostra mensagem de sucesso
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Backup salvo em: ${file.path}")),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Erro ao salvar backup: $e")),
+    );
+  }
+}
+
+
+
+  Future<void> _restaurarBackup() async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['json'],
+  );
+
+  String message;
+
+  if (result != null) {
+    File file = File(result.files.single.path!);
+    String content = await file.readAsString();
+    dynamic jsonData = jsonDecode(content);
+
+    await repository.deleteAllData();
+
+    if (jsonData is List) {
+      for (var alarmMap in jsonData) {
+        // Inserir alarm
+        int alarmId = await repository.insertAlarm({
+          'name': alarmMap['name'],
+          'active': alarmMap['active'],
+        });
+
+        // Inserir hours associados
+        if (alarmMap['hours'] != null && alarmMap['hours'] is List) {
+          for (var hourMap in alarmMap['hours']) {
+            await repository.insertHour({
+              'time': hourMap['time'],
+              'answered': hourMap['answered'],
+              'alarm_id': alarmId,
+            });
+          }
+        }
+
+        // Inserir days associados
+        if (alarmMap['days'] != null && alarmMap['days'] is List) {
+          for (var dayMap in alarmMap['days']) {
+            await repository.insertDay({
+              'week_day': dayMap['week_day'],
+              'today': dayMap['today'],
+              'alarm_id': alarmId,
+            });
+          }
+        }
+      }
+    }
+
+    message = "Backup restaurado com sucesso!";
+  } else {
+    message = "Erro na seleção de arquivo";
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+
+
   /////////////////////////////////////////////////////////////////////////////////////////
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  _initializeData().then((_) {
-    _authenticateWithBiometrics();
-  });
-
-  _authenticateWithBiometrics();
-
-  // Check if the device supports biometrics.
-  /*auth.isDeviceSupported().then((bool isSupported) {
-    setState(() {
-      if (isSupported) {
-        _supportState = _SupportState.supported;
-      } else {
-        _supportState = _SupportState.unsupported;
-      }
+    _initializeData().then((_) {
+      _authenticateWithBiometrics();
     });
-  });*/
-}
+
+    _authenticateWithBiometrics();
+
+    // Check if the device supports biometrics.
+    /*auth.isDeviceSupported().then((bool isSupported) {
+      setState(() {
+        if (isSupported) {
+          _supportState = _SupportState.supported;
+        } else {
+          _supportState = _SupportState.unsupported;
+        }
+      });
+    });*/
+  }
 
   ///////////////////////////////////////////////////////////////////////////////////////////
   
@@ -404,143 +544,143 @@ void initState() {
         ),
 
 
+        
+
+
         /////////////////////////////////////////////////////////////////////////////////////
         // BODY                                                                            //
         /////////////////////////////////////////////////////////////////////////////////////
         
         body: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Center(
-            child: Column(
-              children: listOfAlarms.isEmpty
-                ? // If the alarm list is empty /////////////////////////////////////////////
-                
-                [
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.alarm_outlined, size: 50, color: Colors.grey),
-                          SizedBox(height: 10),
-                          Text(
-                            "Nenhum alarme adicionado!",
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                ]
+          child: Column(
+            children: [
+              ElevatedButton(
+                onPressed: () => _fazerBackup(context),
+                child: const Text('Fazer Backup Local'),
+              ),
 
-                : // If the alarm list is not empty /////////////////////////////////////////
+              const SizedBox(height: 20),
 
-                [
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: listOfAlarms.length + 1, // +1 for the text.
-                      
-                      separatorBuilder: (context, index) {
-                        if (index == 0) {
-                          return SizedBox.shrink();
-                        }
-                        return const Divider();
-                      },
+              ElevatedButton(
+                onPressed: () async {
+                  await _restaurarBackup();
+                  await _initializeData();
+                },
+                child: const Text('Restaurar Backup Local'),
+              ),
 
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-                            child: Column(
-                              children: [
-                                Text(
-                                  _allAlarmsDisabled
-                                      ? nextAlarmText
-                                      : 'Próximo alarme ${_getDayPrefix(nextAlarmDayText)} \n'
-                                        '$nextAlarmDayText ${_getHourPrefix(nextAlarmHourText)} $nextAlarmHourText',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 24),
-                                ),
-                                SizedBox(height: 10),
-                              ],
+              const SizedBox(height: 20),
+
+              Expanded(
+                child: listOfAlarms.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.alarm_outlined, size: 50, color: Colors.grey),
+                            SizedBox(height: 10),
+                            Text(
+                              "Nenhum alarme adicionado!",
+                              style: TextStyle(fontSize: 18, color: Colors.grey),
                             ),
-                          );
-                        }
-
-                        final alarmIndex = index - 1;
-
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Container(
-                            color: listOfAlarms[alarmIndex].active == 1
-                                ? const Color.fromARGB(255, 0, 75, 150)
-                                : const Color.fromARGB(255, 67, 118, 156),
-                            child: ListTile(
-                              title: Text(
-                                listOfAlarms[alarmIndex].name,
-                                style: TextStyle(color: Colors.white),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: listOfAlarms.length + 1,
+                        separatorBuilder: (context, index) {
+                          if (index == 0) {
+                            return const SizedBox.shrink();
+                          }
+                          return const Divider();
+                        },
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    _allAlarmsDisabled
+                                        ? nextAlarmText
+                                        : 'Próximo alarme ${_getDayPrefix(nextAlarmDayText)} \n'
+                                          '$nextAlarmDayText ${_getHourPrefix(nextAlarmHourText)} $nextAlarmHourText',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 24),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
                               ),
+                            );
+                          }
 
-                              subtitle: Text(
-                                listOfNumberOfHoursByAlarm.length == listOfAlarms.length &&
-                                        listOfNumberOfDaysByAlarm.length == listOfAlarms.length
-                                    ? '${listOfNumberOfHoursByAlarm[alarmIndex]} horário(s) e ${listOfNumberOfDaysByAlarm[alarmIndex]} dia(s) da semana'
-                                    : 'Carregando...',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                          final alarmIndex = index - 1;
 
-                              trailing: Icon(
-                                listOfAlarms[alarmIndex].active == 1
-                                    ? Icons.check_circle_outlined
-                                    : Icons.cancel_outlined,
-                                color: Colors.white,
-                              ),
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              color: listOfAlarms[alarmIndex].active == 1
+                                  ? const Color.fromARGB(255, 0, 75, 150)
+                                  : const Color.fromARGB(255, 67, 118, 156),
+                              child: ListTile(
+                                title: Text(
+                                  listOfAlarms[alarmIndex].name,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  listOfNumberOfHoursByAlarm.length == listOfAlarms.length &&
+                                          listOfNumberOfDaysByAlarm.length == listOfAlarms.length
+                                      ? '${listOfNumberOfHoursByAlarm[alarmIndex]} horário(s) e ${listOfNumberOfDaysByAlarm[alarmIndex]} dia(s) da semana'
+                                      : 'Carregando...',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                trailing: Icon(
+                                  listOfAlarms[alarmIndex].active == 1
+                                      ? Icons.check_circle_outlined
+                                      : Icons.cancel_outlined,
+                                  color: Colors.white,
+                                ),
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    Routes.detailAlarm,
+                                    arguments: listOfAlarms[alarmIndex],
+                                  ).then((value) async {
+                                    await loadAlarms();
+                                    await loadNumberOfHoursByAlarm();
+                                    await loadNumberOfDaysByAlarm();
+                                    await findNextAlarm();
+                                    if (mounted) setState(() {});
+                                  });
+                                },
+                                onLongPress: () async {
+                                  listOfAlarms[alarmIndex].active =
+                                      listOfAlarms[alarmIndex].active == 1 ? 0 : 1;
 
-                              onTap: () {
-                                Navigator.pushNamed(context, Routes.detailAlarm,
-                                        arguments: listOfAlarms[alarmIndex])
-                                    .then((value) async {
-                                  await loadAlarms();
-                                  await loadNumberOfHoursByAlarm();
-                                  await loadNumberOfDaysByAlarm();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(listOfAlarms[alarmIndex].active == 1
+                                          ? 'Alarme ativado.'
+                                          : 'Alarme desativado.'),
+                                      duration: const Duration(milliseconds: 1500),
+                                    ),
+                                  );
+
+                                  repository.updateAlarm(listOfAlarms[alarmIndex]);
                                   await findNextAlarm();
                                   if (mounted) setState(() {});
-                                });
-                              },
-
-                              onLongPress: () async {
-                                if (listOfAlarms[alarmIndex].active == 1) {
-                                  listOfAlarms[alarmIndex].active = 0;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Alarme desativado.'),
-                                      duration: Duration(milliseconds: 1500),
-                                    ),
-                                  );
-                                } else {
-                                  listOfAlarms[alarmIndex].active = 1;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Alarme ativado.'),
-                                      duration: Duration(milliseconds: 1500),
-                                    ),
-                                  );
-                                }
-
-                                repository.updateAlarm(listOfAlarms[alarmIndex]);
-                                await findNextAlarm();
-                                if (mounted) setState(() {});
-                              },
+                                },
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ]
-            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
         ),
+
         
 
         /////////////////////////////////////////////////////////////////////////////////////

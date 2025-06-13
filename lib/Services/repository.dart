@@ -50,7 +50,7 @@ class Repository {
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////
-  
+
   Future<int> insertAlarm(Map<String, dynamic> row) async {
     return await _database.insertAlarm(row);
   }
@@ -105,6 +105,18 @@ class Repository {
   
   Future<List<Alarm>> getAllAlarms() async {
     return await _database.getAllAlarms();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<void> deleteAllData() async {
+    await _database.deleteAllData();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<List<Map<String, dynamic>>> getAllAlarmsJson() async {
+    return await _database.getAllAlarmsJson();
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////

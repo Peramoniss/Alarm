@@ -3,9 +3,6 @@ import 'package:despertador/Views/add_alarm_view.dart';
 import 'package:despertador/Views/edit_alarm_view.dart';
 import 'package:despertador/Views/add_edit_hour_view.dart';
 import 'package:despertador/Views/detail_alarm_view.dart';
-import 'package:despertador/Views/edit_alarm_view.dart';
-import 'package:despertador/Views/add_edit_hour_view.dart';
-import 'package:despertador/Views/detail_alarm_view.dart';
 import 'package:despertador/Views/list_alarm_view.dart';
 import 'package:despertador/login_screen.dart';
 import 'package:despertador/notificacoes/gerenciador_notificacoes.dart';
@@ -41,7 +38,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Despertador',
-      initialRoute: Routes.backtest, //trocar para notification, home, para testar depois
+      initialRoute: Routes.home, 
       navigatorKey: Routes.nav,
 
       theme: ThemeData(

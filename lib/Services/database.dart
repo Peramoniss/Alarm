@@ -127,6 +127,16 @@ class DatabaseHelper {
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
+  Future<void> deleteAllData() async {
+    await startDatabase();
+
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, arquivoDoBancoDeDados);
+    return await deleteDatabase(path);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
   Future<int> deleteHour(int id) async { 
     await startDatabase();
     return await _bancoDeDados.delete(hourTable, where: '$columnId = ?', whereArgs: [id]);
@@ -156,6 +166,45 @@ class DatabaseHelper {
         Alarm(id: pId, name: pName, active: pActive),
     ];
   }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  Future<List<Map<String, dynamic>>> getAllAlarmsJson() async {
+    await startDatabase();
+
+    final List<Map<String, Object?>> alarms =
+        await _bancoDeDados.query(alarmTable);
+
+    List<Map<String, dynamic>> alarmJsonList = [];
+
+    for (final alarm in alarms) {
+      final int alarmId = alarm[columnId] as int;
+
+      // Pega as horas associadas ao alarme
+      final List<Map<String, Object?>> hours = await _bancoDeDados.query(
+        hourTable,
+        where: '$columnAlarmId = ?',
+        whereArgs: [alarmId],
+      );
+
+      // Pega os dias associados ao alarme
+      final List<Map<String, Object?>> days = await _bancoDeDados.query(
+        dayTable,
+        where: '$columnAlarmId = ?',
+        whereArgs: [alarmId],
+      );
+
+      // Monta o mapa completo
+      Map<String, dynamic> alarmJson = Map.from(alarm);
+      alarmJson['hours'] = hours;
+      alarmJson['days'] = days;
+
+      alarmJsonList.add(alarmJson);
+    }
+
+    return alarmJsonList;
+  }
+
 
   /////////////////////////////////////////////////////////////////////////////////////////
 
